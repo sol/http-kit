@@ -46,9 +46,9 @@ connectionUnread_ :: Connection -> ByteString -> IO ()
 connectionUnread_ conn bs = unless (B.null bs) (connectionUnread conn bs)
 
 -- |
--- A reader for HTTP bodies.  It returns chunks of the body as long is there is
--- more data to consume.  When the body has been fully consumed, it returns an
--- empty string.
+-- A reader for HTTP bodies.  It returns chunks of the body as long as there is
+-- more data to consume.  When the body has been fully consumed, it returns
+-- `B.empty`.
 type BodyReader	= IO ByteString
 
 consumeBody :: IO ByteString -> IO ByteString
