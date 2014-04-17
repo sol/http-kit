@@ -15,7 +15,7 @@ library
   hs-source-dirs:
       src
   exposed-modules:
-      Network.HTTP.Toolkit
+      Network.HTTP.Toolkit.Body
       Network.HTTP.Toolkit.Connection
   build-depends:
       base    == 4.*

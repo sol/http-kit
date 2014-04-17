@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Network.HTTP.ToolkitSpec (main, spec) where
+module Network.HTTP.Toolkit.BodySpec (main, spec) where
 
 import           Test.Hspec
 import           Test.QuickCheck
@@ -16,7 +16,8 @@ import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B
 import           Numeric
 
-import           Network.HTTP.Toolkit
+import           Network.HTTP.Toolkit.Connection
+import           Network.HTTP.Toolkit.Body
 
 main :: IO ()
 main = hspec spec

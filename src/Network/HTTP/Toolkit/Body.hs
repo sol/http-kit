@@ -1,8 +1,7 @@
 {-# LANGUAGE OverloadedStrings, DeriveDataTypeable #-}
-module Network.HTTP.Toolkit (
-  module Network.HTTP.Toolkit.Connection
+module Network.HTTP.Toolkit.Body (
 -- * Reader
-, BodyReader
+  BodyReader
 , InvalidBody(..)
 , consumeBody
 
