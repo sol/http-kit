@@ -20,7 +20,8 @@ import           Data.Bits
 import           Data.IORef
 import           Numeric
 import           Data.ByteString (ByteString, breakByte)
-import qualified Data.ByteString.Char8 as B
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as B8
 
 import           Network.HTTP.Toolkit.Connection
 
@@ -121,14 +122,14 @@ breakOnNewline = breakByte 10
 readChunkSize :: Connection -> IO (Int, ByteString)
 readChunkSize conn = do
   xs <- go 0
-  case readHex (B.unpack xs) of
+  case readHex (B8.unpack xs) of
     [(n, "")] -> return (n, xs)
     _ -> throwIO InvalidChunk
   where
     go :: Int -> IO ByteString
     go n = do
       bs <- connectionRead conn
-      case B.span isHexDigit bs of
+      case B8.span isHexDigit bs of
         (xs, ys) -> do
           let m = (n + B.length xs)
           when (m > maxChunkSizeDigits) $
