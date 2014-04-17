@@ -1,9 +1,6 @@
 {-# LANGUAGE OverloadedStrings, DeriveDataTypeable #-}
 module Network.HTTP.Toolkit (
--- * Connetion
-  Connection(..)
-, connectionReadAtLeast
-
+  module Network.HTTP.Toolkit.Connection
 -- * Reader
 , BodyReader
 , InvalidBody(..)
@@ -26,6 +23,8 @@ import           Numeric
 import           Data.ByteString (ByteString, breakByte)
 import qualified Data.ByteString.Char8 as B
 
+import           Network.HTTP.Toolkit.Connection
+
 maxChunkSize :: Int
 maxChunkSize = pred $ 2 ^ (maxChunkSizeDigits * 4)
 
@@ -36,11 +35,6 @@ data InvalidBody = ChunkTooLarge | InvalidChunk
   deriving (Eq, Show, Typeable)
 
 instance Exception InvalidBody
-
-data Connection = Connection {
-  connectionRead :: IO ByteString
-, connectionUnread :: ByteString -> IO ()
-}
 
 connectionUnread_ :: Connection -> ByteString -> IO ()
 connectionUnread_ conn bs = unless (B.null bs) (connectionUnread conn bs)
@@ -121,16 +115,6 @@ makeChunkedReader conn = do
             (zs, rest) -> do
               connectionUnread_ conn rest
               return (y `B.cons` zs)
-
-connectionReadAtLeast :: Connection -> Int -> IO ByteString
-connectionReadAtLeast conn n = connectionRead conn >>= go
-  where
-    go :: ByteString -> IO ByteString
-    go xs
-      | B.length xs < n = do
-          ys <- connectionRead conn
-          go (xs `B.append` ys)
-      | otherwise = return xs
 
 breakOnNewline :: ByteString -> (ByteString, ByteString)
 breakOnNewline = breakByte 10

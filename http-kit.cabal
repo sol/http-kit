@@ -16,6 +16,7 @@ library
       src
   exposed-modules:
       Network.HTTP.Toolkit
+      Network.HTTP.Toolkit.Connection
   build-depends:
       base    == 4.*
     , bytestring
