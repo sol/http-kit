@@ -49,7 +49,7 @@ spec = do
     it "reads header lines" $ do
       property $ \n -> do
         c <- mkConnection (slice n "foo\r\nbar\r\nbaz\r\n\r\n")
-        readHeaderLines defaultMaxHeaderSize c `shouldReturn` ["foo", "bar", "baz"]
+        readHeaderLines defaultHeaderSizeLimit c `shouldReturn` ["foo", "bar", "baz"]
 
     it "reads *arbitrary* header lines" $ do
       property $ \xs n -> do

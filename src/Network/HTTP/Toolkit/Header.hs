@@ -1,5 +1,13 @@
 {-# LANGUAGE OverloadedStrings, DeriveFunctor #-}
-module Network.HTTP.Toolkit.Header where
+module Network.HTTP.Toolkit.Header (
+  RequestResponse(..)
+, readRequestResponse
+, readRequestResponseWithLimit
+, defaultHeaderSizeLimit
+, combineHeaderLines
+, readHeaderLines
+, parseHeaderFields
+) where
 
 import           Control.Applicative
 import           Control.Monad (when)
@@ -16,7 +24,7 @@ data RequestResponse a = RequestResponse a [Header]
   deriving (Eq, Show, Functor)
 
 readRequestResponse :: Connection -> IO (RequestResponse ByteString)
-readRequestResponse = readRequestResponseWithLimit defaultMaxHeaderSize
+readRequestResponse = readRequestResponseWithLimit defaultHeaderSizeLimit
 
 readRequestResponseWithLimit :: Int -> Connection -> IO (RequestResponse ByteString)
 readRequestResponseWithLimit limit c = do
@@ -47,9 +55,6 @@ combineHeaderLines = go
 isSpace :: Char -> Bool
 isSpace c = c == ' ' || c == '\t' || c == '\r'
 
-strip :: ByteString -> ByteString
-strip = stripEnd . stripStart
-
 stripStart :: ByteString -> ByteString
 stripStart = B.dropWhile isSpace
 
@@ -72,8 +77,8 @@ readHeaderLines n c = go n
       (newLimit, bs) <- readLine c limit
       if B.null bs then return [] else (bs :) <$> go newLimit
 
-defaultMaxHeaderSize :: Int
-defaultMaxHeaderSize = 64 * 1024
+defaultHeaderSizeLimit :: Int
+defaultHeaderSizeLimit = 64 * 1024
 
 readLine :: Connection -> Int -> IO (Int, ByteString)
 readLine c = fmap (\(n, xs) -> (n, stripCR xs)) . go
