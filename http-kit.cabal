@@ -17,11 +17,13 @@ library
   exposed-modules:
       Network.HTTP.Toolkit.Body
       Network.HTTP.Toolkit.Connection
+      Network.HTTP.Toolkit.Header
       Network.HTTP.Toolkit.Type
   build-depends:
-      base    == 4.*
+      base == 4.*
     , bytestring
     , http-types
+    , case-insensitive
 
 test-suite spec
   type:
@@ -33,7 +35,7 @@ test-suite spec
   main-is:
       Spec.hs
   build-depends:
-      base    == 4.*
+      base == 4.*
     , http-kit
     , bytestring
     , hspec >= 1.9
