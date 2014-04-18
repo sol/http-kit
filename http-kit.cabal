@@ -17,9 +17,11 @@ library
   exposed-modules:
       Network.HTTP.Toolkit.Body
       Network.HTTP.Toolkit.Connection
+      Network.HTTP.Toolkit.Type
   build-depends:
       base    == 4.*
     , bytestring
+    , http-types
 
 test-suite spec
   type:

@@ -1,8 +1,7 @@
-{-# LANGUAGE OverloadedStrings, DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Network.HTTP.Toolkit.Body (
 -- * Reader
   BodyReader
-, InvalidBody(..)
 , consumeBody
 
 -- * Chunked body
@@ -14,7 +13,6 @@ module Network.HTTP.Toolkit.Body (
 import           Control.Applicative
 import           Control.Monad
 import           Control.Exception
-import           Data.Typeable
 import           Data.Char
 import           Data.Bits
 import           Data.IORef
@@ -23,6 +21,7 @@ import           Data.ByteString (ByteString, breakByte)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 
+import           Network.HTTP.Toolkit.Type
 import           Network.HTTP.Toolkit.Connection
 
 maxChunkSize :: Int
@@ -30,14 +29,6 @@ maxChunkSize = pred $ 2 ^ (maxChunkSizeDigits * 4)
 
 maxChunkSizeDigits :: Int
 maxChunkSizeDigits = pred (bitSize (undefined :: Int) `div` 4)
-
-data InvalidBody = ChunkTooLarge | InvalidChunk
-  deriving (Eq, Show, Typeable)
-
-instance Exception InvalidBody
-
-connectionUnread_ :: Connection -> ByteString -> IO ()
-connectionUnread_ conn bs = unless (B.null bs) (connectionUnread conn bs)
 
 -- |
 -- A reader for HTTP bodies.  It returns chunks of the body as long as there is
