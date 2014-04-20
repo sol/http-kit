@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveFunctor #-}
+{-# LANGUAGE OverloadedStrings, DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 module Network.HTTP.Toolkit.Header (
   RequestResponse(..)
 , readRequestResponse
@@ -12,6 +12,8 @@ module Network.HTTP.Toolkit.Header (
 import           Control.Applicative
 import           Control.Monad (when)
 import           Control.Exception
+import           Data.Foldable (Foldable)
+import           Data.Traversable (Traversable)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.CaseInsensitive as CI
@@ -21,7 +23,7 @@ import           Network.HTTP.Toolkit.Type
 import           Network.HTTP.Toolkit.Connection
 
 data RequestResponse a = RequestResponse a [Header]
-  deriving (Eq, Show, Functor)
+  deriving (Eq, Show, Functor, Foldable, Traversable)
 
 readRequestResponse :: Connection -> IO (RequestResponse ByteString)
 readRequestResponse = readRequestResponseWithLimit defaultHeaderSizeLimit
