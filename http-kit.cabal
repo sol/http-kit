@@ -18,6 +18,7 @@ library
       Network.HTTP.Toolkit.Body
       Network.HTTP.Toolkit.Connection
       Network.HTTP.Toolkit.Header
+      Network.HTTP.Toolkit.Request
       Network.HTTP.Toolkit.Type
   build-depends:
       base == 4.*
