@@ -3,8 +3,9 @@ module Network.HTTP.Toolkit.Type where
 
 import           Data.Typeable
 import           Control.Exception
+import           Data.ByteString (ByteString)
 
-data ToolkitError = InvalidHeader | HeaderTooLarge | ChunkTooLarge | InvalidChunk
+data ToolkitError = InvalidRequestLine ByteString | InvalidStatusLine ByteString | InvalidHeader | HeaderTooLarge | ChunkTooLarge | InvalidChunk
   deriving (Eq, Show, Typeable)
 
 instance Exception ToolkitError

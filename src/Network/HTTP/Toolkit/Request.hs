@@ -6,21 +6,28 @@ module Network.HTTP.Toolkit.Request (
 ) where
 
 import           Control.Applicative
+import           Control.Monad (join)
+import           Control.Exception
 import           Data.Traversable (sequenceA)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B
 import           Network.HTTP.Types
 
+import           Network.HTTP.Toolkit.Type
 import           Network.HTTP.Toolkit.Connection
 import           Network.HTTP.Toolkit.Header
 
+
 type Request = RequestResponse (Method, ByteString)
 
-readRequest :: Connection -> IO (Maybe Request)
-readRequest c = sequenceA . fmap parseRequestLine <$> readRequestResponse c
+readRequest :: Connection -> IO Request
+readRequest c = join $ sequenceA . fmap parseRequestLine_ <$> readRequestResponse c
 
-readRequestWithLimit :: Int -> Connection -> IO (Maybe Request)
-readRequestWithLimit limit c = sequenceA . fmap parseRequestLine <$> readRequestResponseWithLimit limit c
+readRequestWithLimit :: Int -> Connection -> IO Request
+readRequestWithLimit limit c = join $ sequenceA . fmap parseRequestLine_ <$> readRequestResponseWithLimit limit c
+
+parseRequestLine_ :: ByteString -> IO (Method, ByteString)
+parseRequestLine_ input = maybe (throwIO $ InvalidRequestLine input) return (parseRequestLine input)
 
 parseRequestLine :: ByteString -> Maybe (Method, ByteString)
 parseRequestLine input = case B.words input of
