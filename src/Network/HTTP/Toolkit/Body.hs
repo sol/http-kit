@@ -4,6 +4,9 @@ module Network.HTTP.Toolkit.Body (
   BodyReader
 , consumeBody
 
+-- * Body with Content-Length
+, makeContentLengthReader
+
 -- * Chunked body
 , maxChunkSize
 , makeChunkedReader
@@ -45,6 +48,21 @@ consumeBody bodyReader = B.concat <$> go
       case bs of
         "" -> return []
         _ -> (bs:) <$> go
+
+makeContentLengthReader :: Int -> Connection -> IO BodyReader
+makeContentLengthReader total c = do
+  ref <- newIORef total
+  return $ do
+    n <- readIORef ref
+    if n == 0
+      then return ""
+      else do
+        bs <- connectionRead c
+        case B.splitAt n bs of
+          (xs, ys) -> do
+            writeIORef ref (n - B.length xs)
+            connectionUnread_ c ys
+            return xs
 
 data Where = Data | Extension
 
