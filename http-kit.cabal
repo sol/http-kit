@@ -19,6 +19,7 @@ library
       Network.HTTP.Toolkit.Connection
       Network.HTTP.Toolkit.Header
       Network.HTTP.Toolkit.Request
+      Network.HTTP.Toolkit.Response
       Network.HTTP.Toolkit.Type
   build-depends:
       base == 4.*
@@ -38,6 +39,7 @@ test-suite spec
   build-depends:
       base == 4.*
     , http-kit
+    , http-types
     , bytestring
     , hspec >= 1.9
     , QuickCheck
