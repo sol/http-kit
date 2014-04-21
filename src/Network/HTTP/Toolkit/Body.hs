@@ -11,6 +11,9 @@ module Network.HTTP.Toolkit.Body (
 , maxChunkSize
 , makeChunkedReader
 , readChunkSize
+
+-- * Body with unspecified length
+, makeUnlimitedReader
 ) where
 
 import           Control.Applicative
@@ -48,6 +51,18 @@ consumeBody bodyReader = B.concat <$> go
       case bs of
         "" -> return []
         _ -> (bs:) <$> go
+
+makeUnlimitedReader :: Connection -> IO BodyReader
+makeUnlimitedReader c = do
+  ref <- newIORef False
+  return $ do
+    done <- readIORef ref
+    if done
+      then return ""
+      else do
+        xs <- connectionRead c
+        when (B.null xs) $ writeIORef ref True
+        return xs
 
 makeLengthReader :: Int -> Connection -> IO BodyReader
 makeLengthReader total c = do

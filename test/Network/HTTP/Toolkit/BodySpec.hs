@@ -71,6 +71,29 @@ spec = do
         _ <- consumeBody bodyReader
         connectionReadAtLeast c (B.length remaining) `shouldReturn` remaining
 
+    context "when body has been fully consumed" $ do
+      it "returns empty string" $ do
+        property $ \body n -> do
+          c <- mkConnection (slice n body)
+          bodyReader <- makeLengthReader (B.length body) c
+          _ <- consumeBody bodyReader
+          bodyReader `shouldReturn` ""
+
+  describe "makeUnlimitedReader" $ do
+    it "reads body until connection gets closed" $ do
+      property $ \body n -> do
+        c <- mkConnection (slice n body ++ [""])
+        bodyReader <- makeUnlimitedReader c
+        consumeBody bodyReader `shouldReturn` body
+
+    context "when body has been fully consumed" $ do
+      it "returns empty string" $ do
+        property $ \body n -> do
+          c <- mkConnection (slice n body ++ [""])
+          bodyReader <- makeUnlimitedReader c
+          _ <- consumeBody bodyReader
+          bodyReader `shouldReturn` ""
+
   describe "readChunkSize" $ do
     it "reads chunk size" $ do
       property $ \n -> do
