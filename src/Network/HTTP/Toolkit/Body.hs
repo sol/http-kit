@@ -4,8 +4,8 @@ module Network.HTTP.Toolkit.Body (
   BodyReader
 , consumeBody
 
--- * Body with Content-Length
-, makeContentLengthReader
+-- * Body with fixed length
+, makeLengthReader
 
 -- * Chunked body
 , maxChunkSize
@@ -49,8 +49,8 @@ consumeBody bodyReader = B.concat <$> go
         "" -> return []
         _ -> (bs:) <$> go
 
-makeContentLengthReader :: Int -> Connection -> IO BodyReader
-makeContentLengthReader total c = do
+makeLengthReader :: Int -> Connection -> IO BodyReader
+makeLengthReader total c = do
   ref <- newIORef total
   return $ do
     n <- readIORef ref

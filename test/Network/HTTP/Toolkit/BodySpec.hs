@@ -57,17 +57,17 @@ formatChunkedBody (ChunkedBody chunks trailer) = mconcat (map formatChunk chunks
 
 spec :: Spec
 spec = do
-  describe "makeContentLengthReader" $ do
-    it "" $ do
+  describe "makeLengthReader" $ do
+    it "reads body with specified length" $ do
       property $ \body n -> do
         c <- mkConnection (slice n body)
-        bodyReader <- makeContentLengthReader (B.length body) c
+        bodyReader <- makeLengthReader (B.length body) c
         consumeBody bodyReader `shouldReturn` body
 
     it "unreads *any* excess input" $ do
       property $ \body n remaining -> (not . B.null) remaining ==> do
         c <- mkConnection (slice n $ body `B.append` remaining)
-        bodyReader <- makeContentLengthReader (B.length body) c
+        bodyReader <- makeLengthReader (B.length body) c
         _ <- consumeBody bodyReader
         connectionReadAtLeast c (B.length remaining) `shouldReturn` remaining
 
