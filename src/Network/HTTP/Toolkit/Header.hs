@@ -35,7 +35,7 @@ readRequestResponseWithLimit limit c = do
     x : xs -> maybe (throwIO InvalidHeader) (return . RequestResponse x) (parseHeaderFields xs)
     [] -> throwIO InvalidHeader
 
--- http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
+-- http://tools.ietf.org/html/rfc2616#section-4.2
 parseHeaderFields :: [ByteString] -> Maybe [Header]
 parseHeaderFields = go . combineHeaderLines
   where

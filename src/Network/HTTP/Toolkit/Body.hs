@@ -1,7 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Network.HTTP.Toolkit.Body (
 -- * Reader
-  BodyReader
+  BodyType(..)
+, bodyTypeFromHeaders
+, makeBodyReader
+
+, BodyReader
 , consumeBody
 
 -- * Body with fixed length
@@ -19,6 +23,7 @@ module Network.HTTP.Toolkit.Body (
 import           Control.Applicative
 import           Control.Monad
 import           Control.Exception
+import           Text.Read (readMaybe)
 import           Data.Char
 import           Data.Bits
 import           Data.IORef
@@ -26,9 +31,27 @@ import           Numeric
 import           Data.ByteString (ByteString, breakByte)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
+import           Network.HTTP.Types
 
 import           Network.HTTP.Toolkit.Type
 import           Network.HTTP.Toolkit.Connection
+
+data BodyType = Chunked | Length Int | Unlimited | None
+  deriving (Eq, Show)
+
+-- as of http://tools.ietf.org/html/rfc2616#section-4.4
+bodyTypeFromHeaders :: [Header] -> Maybe BodyType
+bodyTypeFromHeaders headers = chunked <|> length_
+  where
+    chunked = lookup "Transfer-Encoding" headers >>= guard . (/= "identity") >> Just Chunked
+    length_ = Length <$> (lookup "Content-Length" headers >>= readMaybe . B8.unpack)
+
+makeBodyReader :: Connection -> BodyType -> IO BodyReader
+makeBodyReader c bodyType = case bodyType of
+  Chunked -> makeChunkedReader c
+  Length n -> makeLengthReader n c
+  Unlimited -> makeUnlimitedReader c
+  None -> return (pure "")
 
 maxChunkSize :: Int
 maxChunkSize = pred $ 2 ^ (maxChunkSizeDigits * 4)

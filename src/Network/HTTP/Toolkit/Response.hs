@@ -5,7 +5,6 @@ module Network.HTTP.Toolkit.Response (
 , readResponseWithLimit
 , parseStatusLine
 
-, BodyType(..)
 , determineResponseBodyType
 ) where
 
@@ -31,14 +30,8 @@ readResponse = readResponseWithLimit defaultHeaderSizeLimit
 
 readResponseWithLimit :: Int -> Method -> Connection -> IO (Response, BodyReader)
 readResponseWithLimit limit method c = do
-  r <- join $ sequenceA . fmap parseStatusLine_ <$> readRequestResponseWithLimit limit c
-  body <- case r of
-    RequestResponse status headers -> case determineResponseBodyType method status headers of
-      Chunked -> makeChunkedReader c
-      Length n -> makeLengthReader n c
-      Unlimited -> makeUnlimitedReader c
-      None -> return (pure "")
-  return (r, body)
+  r@(RequestResponse status headers) <- join $ sequenceA . fmap parseStatusLine_ <$> readRequestResponseWithLimit limit c
+  (,) r <$> makeBodyReader c (determineResponseBodyType method status headers)
 
 parseStatusLine_ :: ByteString -> IO Status
 parseStatusLine_ input = maybe (throwIO $ InvalidStatusLine input) return (parseStatusLine input)
@@ -48,15 +41,10 @@ parseStatusLine input = case B.words input of
   _ : status : message : _ -> mkStatus <$> (readMaybe $ B.unpack status) <*> Just message
   _ -> Nothing
 
-data BodyType = Chunked | Length Int | Unlimited | None
-  deriving (Eq, Show)
-
 -- as of http://tools.ietf.org/html/rfc2616#section-4.4
 determineResponseBodyType :: Method -> Status -> [Header] -> BodyType
-determineResponseBodyType method status headers = fromMaybe Unlimited $ none <|> chunked <|> length_
+determineResponseBodyType method status headers = fromMaybe Unlimited $ none <|> bodyTypeFromHeaders headers
   where
-    chunked = lookup "Transfer-Encoding" headers >>= guard . (/= "identity") >> Just Chunked
-    length_ = Length <$> (lookup "Content-Length" headers >>= readMaybe . B.unpack)
     none = guard hasNoResponseBody >> Just None
     code = statusCode status
     hasNoResponseBody =
