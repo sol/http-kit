@@ -5,7 +5,6 @@ import           Helper
 import           System.Timeout
 
 import           Data.Char
-import           Data.Monoid
 import           Data.List
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B

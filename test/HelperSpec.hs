@@ -3,8 +3,6 @@ module HelperSpec (main, spec) where
 
 import           Helper
 
-import           Data.Monoid
-
 main :: IO ()
 main = hspec spec
 

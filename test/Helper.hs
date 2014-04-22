@@ -3,6 +3,7 @@ module Helper (
   module Test.Hspec
 , module Test.QuickCheck
 , module Control.Applicative
+, module Data.Monoid
 , mkConnection
 , slice
 ) where
@@ -14,6 +15,7 @@ import           Test.QuickCheck.Instances ()
 import           Control.Applicative
 import           Control.Exception
 import           Control.Concurrent.MVar
+import           Data.Monoid
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 
