@@ -4,7 +4,7 @@ synopsis:         A low-level HTTP library
 description:      A low-level HTTP library that can be used to build more
                   sophisticated HTTP applications on top of it.
                   .
-                  The main design goals are:
+                  The design goals are:
                   .
                   [secure] To mitigate denial-of-service attacks, everything is
                   bounded.
