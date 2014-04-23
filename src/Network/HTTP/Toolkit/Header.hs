@@ -95,7 +95,7 @@ readLine c = fmap (\(n, xs) -> (n, stripCR xs)) . go
           (ll, ys) <- go newLimit
           return (ll, xs `B.append` ys)
         (xs, ys) -> do
-          connectionUnread_ c (B.drop 1 ys)
+          connectionUnread c (B.drop 1 ys)
           return (newLimit, xs)
     stripCR bs
       | (not . B.null) bs && B.last bs == '\r' = B.init bs
