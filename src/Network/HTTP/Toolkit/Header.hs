@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings, DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 module Network.HTTP.Toolkit.Header (
-  RequestResponse(..)
-, readRequestResponse
-, readRequestResponseWithLimit
+  MessageHeader(..)
+, readMessageHeader
+, readMessageHeaderWithLimit
 , defaultHeaderSizeLimit
 , combineHeaderLines
 , readHeaderLines
@@ -22,17 +22,17 @@ import           Network.HTTP.Types
 import           Network.HTTP.Toolkit.Type
 import           Network.HTTP.Toolkit.Connection
 
-data RequestResponse a = RequestResponse a [Header]
+data MessageHeader a = MessageHeader a [Header]
   deriving (Eq, Show, Functor, Foldable, Traversable)
 
-readRequestResponse :: Connection -> IO (RequestResponse ByteString)
-readRequestResponse = readRequestResponseWithLimit defaultHeaderSizeLimit
+readMessageHeader :: Connection -> IO (MessageHeader ByteString)
+readMessageHeader = readMessageHeaderWithLimit defaultHeaderSizeLimit
 
-readRequestResponseWithLimit :: Int -> Connection -> IO (RequestResponse ByteString)
-readRequestResponseWithLimit limit c = do
+readMessageHeaderWithLimit :: Int -> Connection -> IO (MessageHeader ByteString)
+readMessageHeaderWithLimit limit c = do
   hs <- readHeaderLines limit c
   case hs of
-    x : xs -> maybe (throwIO InvalidHeader) (return . RequestResponse x) (parseHeaderFields xs)
+    x : xs -> maybe (throwIO InvalidHeader) (return . MessageHeader x) (parseHeaderFields xs)
     [] -> throwIO InvalidHeader
 
 -- http://tools.ietf.org/html/rfc2616#section-4.2

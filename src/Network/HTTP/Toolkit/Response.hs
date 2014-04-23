@@ -23,14 +23,14 @@ import           Network.HTTP.Toolkit.Connection
 import           Network.HTTP.Toolkit.Header
 import           Network.HTTP.Toolkit.Body
 
-type Response = RequestResponse Status
+type Response = MessageHeader Status
 
 readResponse :: Method -> Connection -> IO (Response, BodyReader)
 readResponse = readResponseWithLimit defaultHeaderSizeLimit
 
 readResponseWithLimit :: Int -> Method -> Connection -> IO (Response, BodyReader)
 readResponseWithLimit limit method c = do
-  r@(RequestResponse status headers) <- join $ sequenceA . fmap parseStatusLine_ <$> readRequestResponseWithLimit limit c
+  r@(MessageHeader status headers) <- join $ sequenceA . fmap parseStatusLine_ <$> readMessageHeaderWithLimit limit c
   (,) r <$> makeBodyReader c (determineResponseBodyType method status headers)
 
 parseStatusLine_ :: ByteString -> IO Status

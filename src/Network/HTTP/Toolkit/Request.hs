@@ -24,14 +24,14 @@ import           Network.HTTP.Toolkit.Header
 import           Network.HTTP.Toolkit.Body
 
 type RequestPath = ByteString
-type Request = RequestResponse (Method, RequestPath)
+type Request = MessageHeader (Method, RequestPath)
 
 readRequest :: Connection -> IO (Request, BodyReader)
 readRequest = readRequestWithLimit defaultHeaderSizeLimit
 
 readRequestWithLimit :: Int -> Connection -> IO (Request, BodyReader)
 readRequestWithLimit limit c = do
-  r@(RequestResponse _ headers) <- join $ sequenceA . fmap parseRequestLine_ <$> readRequestResponseWithLimit limit c
+  r@(MessageHeader _ headers) <- join $ sequenceA . fmap parseRequestLine_ <$> readMessageHeaderWithLimit limit c
   (,) r <$> makeBodyReader c (determineRequestBodyType headers)
 
 parseRequestLine_ :: ByteString -> IO (Method, ByteString)

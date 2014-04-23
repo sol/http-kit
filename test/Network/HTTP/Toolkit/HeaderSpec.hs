@@ -13,25 +13,25 @@ main = hspec spec
 
 spec :: Spec
 spec = do
-  describe "readRequestResponse" $ do
-    it "reads request/response header" $ do
+  describe "readMessageHeader" $ do
+    it "reads message header" $ do
       c <- mkConnection ["HTTP/1.1 200 OK\r\nfoo: 23\r\nbar: 42\r\n\r\n"]
-      readRequestResponse c `shouldReturn` RequestResponse "HTTP/1.1 200 OK" [("foo", "23"), ("bar", "42")]
+      readMessageHeader c `shouldReturn` MessageHeader "HTTP/1.1 200 OK" [("foo", "23"), ("bar", "42")]
 
     context "when start-line is missing" $ do
       it "throws InvalidHeader" $ do
         c <- mkConnection ["\r\n\r\n"]
-        readRequestResponse c `shouldThrow` (== InvalidHeader)
+        readMessageHeader c `shouldThrow` (== InvalidHeader)
 
     context "when header is malformed" $ do
       it "throws InvalidHeader" $ do
         c <- mkConnection ["HTTP/1.1 200 OK\r\nfoo\r\n\r\n"]
-        readRequestResponse c `shouldThrow` (== InvalidHeader)
+        readMessageHeader c `shouldThrow` (== InvalidHeader)
 
     context "when attacker sends infinite header" $ do
       it "throws HeaderTooLarge" $ do
         c <- mkConnection ("GET / HTTP/1.1" : repeat "foo: 23\r\n")
-        readRequestResponse c `shouldThrow` (== HeaderTooLarge)
+        readMessageHeader c `shouldThrow` (== HeaderTooLarge)
 
   describe "combineHeaderLines" $ do
     it "strips trailing whitespace" $ do
