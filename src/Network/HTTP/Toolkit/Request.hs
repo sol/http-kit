@@ -6,6 +6,9 @@ module Network.HTTP.Toolkit.Request (
 , readRequestWithLimit
 , parseRequestLine
 
+, sendRequest
+, formatRequestLine
+
 , determineRequestBodyType
 ) where
 
@@ -57,3 +60,13 @@ parseRequestLine input = case B.words input of
 -- of <http://tools.ietf.org/html/rfc2616#section-4.4 RFC 2616, Section 4.4>).
 determineRequestBodyType :: [Header] -> BodyType
 determineRequestBodyType = fromMaybe None . bodyTypeFromHeaders
+
+-- | Format request-line.
+formatRequestLine :: Method -> RequestPath -> ByteString
+formatRequestLine method path = B.unwords [method, path, "HTTP/1.1"]
+
+-- | Seand an HTTP request.
+sendRequest :: (ByteString -> IO()) -> RequestHeader -> BodyReader -> IO ()
+sendRequest send header body = do
+  sendHeader send (uncurry formatRequestLine <$> header)
+  sendBody send body

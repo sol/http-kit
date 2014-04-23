@@ -6,6 +6,7 @@ module Network.HTTP.Toolkit.Header (
 , readMessageHeaderWithLimit
 , defaultHeaderSizeLimit
 , parseHeaderFields
+, sendHeader
 
 -- * Internals
 , readHeaderLines
@@ -15,7 +16,7 @@ module Network.HTTP.Toolkit.Header (
 import           Control.Applicative
 import           Control.Monad (when)
 import           Control.Exception
-import           Data.Foldable (Foldable)
+import           Data.Foldable (Foldable, forM_)
 import           Data.Traversable (Traversable)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B
@@ -124,3 +125,12 @@ readLine c = fmap (\(n, xs) -> (n, stripCR xs)) . go
     stripCR bs
       | (not . B.null) bs && B.last bs == '\r' = B.init bs
       | otherwise = bs
+
+-- | Send given message header.
+sendHeader :: (ByteString -> IO()) -> MessageHeader ByteString -> IO ()
+sendHeader send (MessageHeader startLine headers) = do
+  send startLine
+  send "\r\n"
+  forM_ headers $ \(k, v) -> do
+    send $ B.concat [CI.original k, ": ", v, "\r\n"]
+  send "\r\n"
