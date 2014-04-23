@@ -1,12 +1,15 @@
 {-# LANGUAGE OverloadedStrings, DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 module Network.HTTP.Toolkit.Header (
   MessageHeader(..)
+, Limit
 , readMessageHeader
 , readMessageHeaderWithLimit
 , defaultHeaderSizeLimit
-, combineHeaderLines
-, readHeaderLines
 , parseHeaderFields
+
+-- * Internals
+, readHeaderLines
+, combineHeaderLines
 ) where
 
 import           Control.Applicative
@@ -22,20 +25,34 @@ import           Network.HTTP.Types
 import           Network.HTTP.Toolkit.Type
 import           Network.HTTP.Toolkit.Connection
 
+-- | Message header size limit in bytes.
+type Limit = Int
+
+-- | An HTTP message header consiting of a start line and a list of header
+-- fields.
 data MessageHeader a = MessageHeader a [Header]
   deriving (Eq, Show, Functor, Foldable, Traversable)
 
+-- | Read `MessageHeader` from provided `Connection`.
+--
+-- `HeaderTooLarge` is thrown if the header size exceeds `defaultHeaderSizeLimit`.
 readMessageHeader :: Connection -> IO (MessageHeader ByteString)
 readMessageHeader = readMessageHeaderWithLimit defaultHeaderSizeLimit
 
-readMessageHeaderWithLimit :: Int -> Connection -> IO (MessageHeader ByteString)
+-- | Read `MessageHeader` from provided `Connection`.
+--
+-- Throw `HeaderTooLarge` if the header size exceeds the specified `Limit`.
+--
+-- Throw `InvalidHeader` if header is malformed.
+readMessageHeaderWithLimit :: Limit -> Connection -> IO (MessageHeader ByteString)
 readMessageHeaderWithLimit limit c = do
   hs <- readHeaderLines limit c
   case hs of
     x : xs -> maybe (throwIO InvalidHeader) (return . MessageHeader x) (parseHeaderFields xs)
     [] -> throwIO InvalidHeader
 
--- http://tools.ietf.org/html/rfc2616#section-4.2
+-- | Parse header fields according to
+-- <http://tools.ietf.org/html/rfc2616#section-4.2 RFC 2616, Section 4.2>.
 parseHeaderFields :: [ByteString] -> Maybe [Header]
 parseHeaderFields = go . combineHeaderLines
   where
@@ -72,17 +89,18 @@ spanStartsWithWhitespace = go
         (_, y) -> let (ys, zs) = go xs in (stripEnd y : ys, zs)
       [] -> ([], [])
 
-readHeaderLines :: Int -> Connection -> IO [ByteString]
+readHeaderLines :: Limit -> Connection -> IO [ByteString]
 readHeaderLines n c = go n
   where
     go limit = do
       (newLimit, bs) <- readLine c limit
       if B.null bs then return [] else (bs :) <$> go newLimit
 
-defaultHeaderSizeLimit :: Int
+-- | The default message header size limit of 65536 bytes (64 KB).
+defaultHeaderSizeLimit :: Limit
 defaultHeaderSizeLimit = 64 * 1024
 
-readLine :: Connection -> Int -> IO (Int, ByteString)
+readLine :: Connection -> Limit -> IO (Limit, ByteString)
 readLine c = fmap (\(n, xs) -> (n, stripCR xs)) . go
   where
     go limit = do
