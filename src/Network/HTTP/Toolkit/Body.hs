@@ -1,23 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Network.HTTP.Toolkit.Body (
--- * Reader
-  BodyType(..)
+  BodyReader
+, BodyType(..)
 , bodyTypeFromHeaders
 , makeBodyReader
-
-, BodyReader
 , consumeBody
 , sendBody
 
--- * Body with fixed length
-, makeLengthReader
-
--- * Chunked body
+-- * Handling of specific body types
 , maxChunkSize
 , makeChunkedReader
 , readChunkSize
 
--- * Body with unspecified length
+, makeLengthReader
+
 , makeUnlimitedReader
 ) where
 
@@ -38,16 +34,35 @@ import           Network.HTTP.Toolkit.Util
 import           Network.HTTP.Toolkit.Error
 import           Network.HTTP.Toolkit.Connection
 
-data BodyType = Chunked | Length Int | Unlimited | None
+data BodyType =
+    -- | The message has no body.
+    None
+    -- | The message has a body. /Chunked transfer coding/ is used to determine
+    -- the message length (see
+    -- <http://tools.ietf.org/html/rfc2616#section-3.6.1 RFC 2616, Section 3.6.1>).
+  | Chunked
+    -- | The message has a body with a specified length.
+  | Length Int
+    -- | The message has a body. The body length is determined by the server
+    -- closing the connection.  This is only a valid approach for response
+    -- bodies. It can not be used for request bodies.
+  | Unlimited
   deriving (Eq, Show)
 
--- as of http://tools.ietf.org/html/rfc2616#section-4.4
+-- | Determine the message `BodyType` from a given list of message headers (as
+-- of <http://tools.ietf.org/html/rfc2616#section-4.4 RFC 2616, Section 4.4>).
+--
+-- This is only a partial breakdown.  Additional rules apply for request and
+-- response bodies respectively (see
+-- `Network.HTTP.Toolkit.Request.determineRequestBodyType` and
+-- `Network.HTTP.Toolkit.Response.determineResponseBodyType`).
 bodyTypeFromHeaders :: [Header] -> Maybe BodyType
 bodyTypeFromHeaders headers = chunked <|> length_
   where
     chunked = lookup "Transfer-Encoding" headers >>= guard . (/= "identity") >> Just Chunked
     length_ = Length <$> (lookup "Content-Length" headers >>= readMaybe . B8.unpack)
 
+-- | Create a `BodyReader` from provided `Connection` and specified `BodyType`.
 makeBodyReader :: Connection -> BodyType -> IO BodyReader
 makeBodyReader c bodyType = case bodyType of
   Chunked -> makeChunkedReader c
@@ -55,18 +70,25 @@ makeBodyReader c bodyType = case bodyType of
   Unlimited -> makeUnlimitedReader c
   None -> return (pure "")
 
+-- |
+-- The maximum size of a chunk in bytes when chunked transfer coding is used.
+-- The value depends on the `bitSize` of `Int`:
+--
+-- * @2^28@ on 32-bit systems
+--
+-- * @2^60@ on 64-bit systems
 maxChunkSize :: Int
 maxChunkSize = pred $ 2 ^ (maxChunkSizeDigits * 4)
 
 maxChunkSizeDigits :: Int
 maxChunkSizeDigits = pred (bitSize (undefined :: Int) `div` 4)
 
--- |
--- A reader for HTTP bodies.  It returns chunks of the body as long as there is
--- more data to consume.  When the body has been fully consumed, it returns
+-- | A reader for HTTP bodies.  It returns chunks of the body as long as there
+-- is more data to consume.  When the body has been fully consumed, it returns
 -- `B.empty`.
 type BodyReader	= IO ByteString
 
+-- | Strictly consume all input from provided `BodyReader`.
 consumeBody :: BodyReader -> IO ByteString
 consumeBody bodyReader = B.concat <$> go
   where
@@ -77,9 +99,14 @@ consumeBody bodyReader = B.concat <$> go
         "" -> return []
         _ -> (bs:) <$> go
 
+-- | Read input from provided `BodyReader` and wirte it to provided sink until
+-- all input has been consumed.
 sendBody :: (ByteString -> IO ()) -> BodyReader -> IO ()
 sendBody send body = while (not . B.null) body send
 
+-- |
+-- Create a reader for when the body length is determined by the server closing
+-- the connection.
 makeUnlimitedReader :: Connection -> IO BodyReader
 makeUnlimitedReader c = do
   ref <- newIORef False
@@ -92,6 +119,7 @@ makeUnlimitedReader c = do
         when (B.null xs) $ writeIORef ref True
         return xs
 
+-- | Create a reader for bodies with a specified length.
 makeLengthReader :: Int -> Connection -> IO BodyReader
 makeLengthReader total c = do
   ref <- newIORef total
@@ -111,7 +139,7 @@ data Where = Data | Extension
 
 data State = More Int Where | Trailer | Done
 
--- | Create a reader for chunked bodies.
+-- | Create a reader for bodies with chunked transfer coding.
 --
 -- The reader throws `InvalidChunk` if the body is malformed.
 --
@@ -129,7 +157,7 @@ makeChunkedReader conn = do
       More n Extension -> do
         bs <- connectionRead conn
         case breakOnNewline bs of
-          ("", _) -> 
+          ("", _) ->
             if n > 0
               then do
                 handleChunkData ref (n + 3) bs
@@ -171,6 +199,10 @@ makeChunkedReader conn = do
 breakOnNewline :: ByteString -> (ByteString, ByteString)
 breakOnNewline = breakByte 10
 
+-- |
+-- Read size of next body chunk for when chunked transfer coding is used.
+--
+-- Throws `ChunkTooLarge` if chunk size exceeds `maxChunkSize`.
 readChunkSize :: Connection -> IO (Int, ByteString)
 readChunkSize conn = do
   xs <- go 0
