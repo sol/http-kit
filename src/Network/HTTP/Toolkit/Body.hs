@@ -7,6 +7,7 @@ module Network.HTTP.Toolkit.Body (
 
 , BodyReader
 , consumeBody
+, sendBody
 
 -- * Body with fixed length
 , makeLengthReader
@@ -33,6 +34,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 import           Network.HTTP.Types
 
+import           Network.HTTP.Toolkit.Util
 import           Network.HTTP.Toolkit.Type
 import           Network.HTTP.Toolkit.Connection
 
@@ -65,7 +67,7 @@ maxChunkSizeDigits = pred (bitSize (undefined :: Int) `div` 4)
 -- `B.empty`.
 type BodyReader	= IO ByteString
 
-consumeBody :: IO ByteString -> IO ByteString
+consumeBody :: BodyReader -> IO ByteString
 consumeBody bodyReader = B.concat <$> go
   where
     go :: IO [ByteString]
@@ -74,6 +76,9 @@ consumeBody bodyReader = B.concat <$> go
       case bs of
         "" -> return []
         _ -> (bs:) <$> go
+
+sendBody :: (ByteString -> IO ()) -> BodyReader -> IO ()
+sendBody send body = while (not . B.null) body send
 
 makeUnlimitedReader :: Connection -> IO BodyReader
 makeUnlimitedReader c = do

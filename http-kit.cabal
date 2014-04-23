@@ -21,6 +21,8 @@ library
       Network.HTTP.Toolkit.Request
       Network.HTTP.Toolkit.Response
       Network.HTTP.Toolkit.Type
+  other-modules:
+      Network.HTTP.Toolkit.Util
   build-depends:
       base == 4.*
     , bytestring
