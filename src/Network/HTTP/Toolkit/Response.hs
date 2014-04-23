@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Network.HTTP.Toolkit.Response (
-  Response
+  ResponseHeader
 , readResponse
 , readResponseWithLimit
 , parseStatusLine
@@ -23,12 +23,30 @@ import           Network.HTTP.Toolkit.Connection
 import           Network.HTTP.Toolkit.Header
 import           Network.HTTP.Toolkit.Body
 
-type Response = MessageHeader Status
+type ResponseHeader = MessageHeader Status
 
-readResponse :: Method -> Connection -> IO (Response, BodyReader)
+-- | Read response from provided connection.
+--
+-- Throws:
+--
+-- * `InvalidStatusLine` if request-line is malformed.
+--
+-- * `HeaderTooLarge` if the header size exceeds `defaultHeaderSizeLimit`.
+--
+-- * `InvalidHeader` if header is malformed.
+readResponse :: Method -> Connection -> IO (ResponseHeader, BodyReader)
 readResponse = readResponseWithLimit defaultHeaderSizeLimit
 
-readResponseWithLimit :: Int -> Method -> Connection -> IO (Response, BodyReader)
+-- | Read response from provided connection.
+--
+-- Throws:
+--
+-- * `InvalidStatusLine` if request-line is malformed.
+--
+-- * `HeaderTooLarge` if the header size exceeds the specified `Limit`.
+--
+-- * `InvalidHeader` if header is malformed.
+readResponseWithLimit :: Limit -> Method -> Connection -> IO (ResponseHeader, BodyReader)
 readResponseWithLimit limit method c = do
   r@(MessageHeader status headers) <- join $ sequenceA . fmap parseStatusLine_ <$> readMessageHeaderWithLimit limit c
   (,) r <$> makeBodyReader c (determineResponseBodyType method status headers)
@@ -36,12 +54,15 @@ readResponseWithLimit limit method c = do
 parseStatusLine_ :: ByteString -> IO Status
 parseStatusLine_ input = maybe (throwIO $ InvalidStatusLine input) return (parseStatusLine input)
 
+-- | Parse status-line (see <http://tools.ietf.org/html/rfc2616#section-6.1 RFC 2616, Section 6.1>).
 parseStatusLine :: ByteString -> Maybe Status
 parseStatusLine input = case B.words input of
   _ : status : message : _ -> mkStatus <$> (readMaybe $ B.unpack status) <*> Just message
   _ -> Nothing
 
--- as of http://tools.ietf.org/html/rfc2616#section-4.4
+-- | Determine the message `BodyType` from a given `Method`, `Status` and a
+-- list of message headers (as of
+-- <http://tools.ietf.org/html/rfc2616#section-4.4 RFC 2616, Section 4.4>).
 determineResponseBodyType :: Method -> Status -> [Header] -> BodyType
 determineResponseBodyType method status headers = fromMaybe Unlimited $ none <|> bodyTypeFromHeaders headers
   where

@@ -35,15 +35,21 @@ data MessageHeader a = MessageHeader a [Header]
 
 -- | Read `MessageHeader` from provided `Connection`.
 --
--- `HeaderTooLarge` is thrown if the header size exceeds `defaultHeaderSizeLimit`.
+-- Throws:
+--
+-- * `HeaderTooLarge` if the header size exceeds `defaultHeaderSizeLimit`.
+--
+-- * `InvalidHeader` if header is malformed.
 readMessageHeader :: Connection -> IO (MessageHeader ByteString)
 readMessageHeader = readMessageHeaderWithLimit defaultHeaderSizeLimit
 
 -- | Read `MessageHeader` from provided `Connection`.
 --
--- Throws `HeaderTooLarge` if the header size exceeds the specified `Limit`.
+-- Throws:
 --
--- Throws `InvalidHeader` if header is malformed.
+-- * `HeaderTooLarge` if the header size exceeds the specified `Limit`.
+--
+-- * `InvalidHeader` if header is malformed.
 readMessageHeaderWithLimit :: Limit -> Connection -> IO (MessageHeader ByteString)
 readMessageHeaderWithLimit limit c = do
   hs <- readHeaderLines limit c
