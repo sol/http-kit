@@ -25,15 +25,8 @@ import           Network.HTTP.Toolkit.Body
 
 type ResponseHeader = MessageHeader Status
 
--- | Read response from provided connection.
---
--- Throws:
---
--- * `InvalidStatusLine` if request-line is malformed.
---
--- * `HeaderTooLarge` if the header size exceeds `defaultHeaderSizeLimit`.
---
--- * `InvalidHeader` if header is malformed.
+-- | Same as `readResponseWithLimit` with a `Limit` of
+-- `defaultHeaderSizeLimit`.
 readResponse :: Method -> Connection -> IO (ResponseHeader, BodyReader)
 readResponse = readResponseWithLimit defaultHeaderSizeLimit
 
@@ -60,8 +53,8 @@ parseStatusLine input = case B.words input of
   _ : status : message : _ -> mkStatus <$> (readMaybe $ B.unpack status) <*> Just message
   _ -> Nothing
 
--- | Determine the message `BodyType` from a given `Method`, `Status` and a
--- list of message headers (as of
+-- | Determine the message `BodyType` from a given `Method`, `Status`, and list
+-- of message headers (as of
 -- <http://tools.ietf.org/html/rfc2616#section-4.4 RFC 2616, Section 4.4>).
 determineResponseBodyType :: Method -> Status -> [Header] -> BodyType
 determineResponseBodyType method status headers = fromMaybe Unlimited $ none <|> bodyTypeFromHeaders headers

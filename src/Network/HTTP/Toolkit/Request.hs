@@ -26,15 +26,7 @@ import           Network.HTTP.Toolkit.Body
 type RequestPath = ByteString
 type RequestHeader = MessageHeader (Method, RequestPath)
 
--- | Read request from provided connection.
---
--- Throws:
---
--- * `InvalidRequestLine` if request-line is malformed.
---
--- * `HeaderTooLarge` if the header size exceeds `defaultHeaderSizeLimit`.
---
--- * `InvalidHeader` if header is malformed.
+-- | Same as `readRequestWithLimit` with a `Limit` of `defaultHeaderSizeLimit`.
 readRequest :: Connection -> IO (RequestHeader, BodyReader)
 readRequest = readRequestWithLimit defaultHeaderSizeLimit
 

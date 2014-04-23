@@ -141,9 +141,11 @@ data State = More Int Where | Trailer | Done
 
 -- | Create a reader for bodies with chunked transfer coding.
 --
--- The reader throws `InvalidChunk` if the body is malformed.
+-- The reader throws:
 --
--- The reader throws `ChunkTooLarge` if a chunk exceeds `maxChunkSize`.
+-- * `InvalidChunk` if the body is malformed.
+--
+-- * `ChunkTooLarge` if the size of a chunk exceeds `maxChunkSize`.
 makeChunkedReader :: Connection -> IO BodyReader
 makeChunkedReader conn = do
   ref <- newIORef (More 0 Data)
@@ -202,7 +204,9 @@ breakOnNewline = breakByte 10
 -- |
 -- Read size of next body chunk for when chunked transfer coding is used.
 --
--- Throws `ChunkTooLarge` if chunk size exceeds `maxChunkSize`.
+-- Throws:
+--
+-- * `ChunkTooLarge` if chunk size exceeds `maxChunkSize`.
 readChunkSize :: Connection -> IO (Int, ByteString)
 readChunkSize conn = do
   xs <- go 0
