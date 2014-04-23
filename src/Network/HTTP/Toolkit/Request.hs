@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Network.HTTP.Toolkit.Request (
-  Request
+  RequestPath
+, Request
 , readRequest
 , readRequestWithLimit
 , parseRequestLine
@@ -22,7 +23,8 @@ import           Network.HTTP.Toolkit.Connection
 import           Network.HTTP.Toolkit.Header
 import           Network.HTTP.Toolkit.Body
 
-type Request = RequestResponse (Method, ByteString)
+type RequestPath = ByteString
+type Request = RequestResponse (Method, RequestPath)
 
 readRequest :: Connection -> IO (Request, BodyReader)
 readRequest = readRequestWithLimit defaultHeaderSizeLimit

@@ -6,32 +6,39 @@ module Network.HTTP.Toolkit.Connection (
 , connectionReadAtLeast
 ) where
 
+import           Prelude hiding (read)
 import           Control.Monad (join, unless)
 import           Data.IORef
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 
+-- | An abstract connection type that allows to read and unread input.
 data Connection = Connection {
   _read :: IO ByteString
 , _unread :: ByteString -> IO ()
 }
 
+-- | Create a `Connection` from provided @IO@ action.
 makeConnection :: IO ByteString -> IO Connection
-makeConnection r = do
+makeConnection read = do
   ref <- newIORef []
   return $ Connection {
       _read = join $ atomicModifyIORef ref $ \xs -> case xs of
         y : ys -> (ys, return y)
-        _ -> (xs, r)
+        _ -> (xs, read)
     , _unread = \x -> atomicModifyIORef ref $ \xs -> (x : xs, ())
     }
 
+-- | Read some input.
 connectionRead :: Connection -> IO ByteString
 connectionRead = _read
 
+-- | Push back some input.  The pushed back input will be returned by a later
+-- call to `connectionRead`.
 connectionUnread :: Connection -> ByteString -> IO ()
 connectionUnread conn bs = unless (B.null bs) (_unread conn bs)
 
+-- | Read at least the specified number of bytes from the input stream.
 connectionReadAtLeast :: Connection -> Int -> IO ByteString
 connectionReadAtLeast conn n = connectionRead conn >>= go
   where
