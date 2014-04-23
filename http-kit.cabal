@@ -1,13 +1,32 @@
 name:             http-kit
-version:          0.0.0
+version:          0.1.0
 synopsis:         A low-level HTTP library
+description:      A low-level HTTP library that can be used to build more
+                  sophisticated HTTP applications on top of it.
+                  .
+                  The main design goals are:
+                  .
+                  [secure] To mitigate denial-of-service attacks, everything is
+                  bounded.
+                  .
+                  [efficient] Message bodies are read in chunks, so that they
+                  can be processed with constant space usage.
+                  .
+                  [universal] No framework for streaming data is used.  This
+                  allows you to build more sophisticated application on top of
+                  it, using the libraries that fit your purpose.
 license:          MIT
 license-file:     LICENSE
 copyright:        (c) 2014 Zalora South East Asia Pte. Ltd
 author:           Simon Hengel <sol@typeful.net>
 maintainer:       Simon Hengel <sol@typeful.net>
 build-type:       Simple
+category:         Network
 cabal-version:    >= 1.8
+
+source-repository head
+  type: git
+  location: https://github.com/zalora/http-kit
 
 library
   ghc-options:
