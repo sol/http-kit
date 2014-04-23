@@ -5,7 +5,7 @@ import           Helper
 
 import qualified Data.ByteString.Char8 as B
 
-import           Network.HTTP.Toolkit.Type
+import           Network.HTTP.Toolkit.Error
 import           Network.HTTP.Toolkit.Header
 
 main :: IO ()

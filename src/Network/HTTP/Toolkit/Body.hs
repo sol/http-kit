@@ -35,7 +35,7 @@ import qualified Data.ByteString.Char8 as B8
 import           Network.HTTP.Types
 
 import           Network.HTTP.Toolkit.Util
-import           Network.HTTP.Toolkit.Type
+import           Network.HTTP.Toolkit.Error
 import           Network.HTTP.Toolkit.Connection
 
 data BodyType = Chunked | Length Int | Unlimited | None

@@ -18,7 +18,7 @@ import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B
 import           Network.HTTP.Types
 
-import           Network.HTTP.Toolkit.Type
+import           Network.HTTP.Toolkit.Error
 import           Network.HTTP.Toolkit.Connection
 import           Network.HTTP.Toolkit.Header
 import           Network.HTTP.Toolkit.Body

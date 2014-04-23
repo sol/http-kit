@@ -20,7 +20,7 @@ library
       Network.HTTP.Toolkit.Header
       Network.HTTP.Toolkit.Request
       Network.HTTP.Toolkit.Response
-      Network.HTTP.Toolkit.Type
+      Network.HTTP.Toolkit.Error
   other-modules:
       Network.HTTP.Toolkit.Util
   build-depends:

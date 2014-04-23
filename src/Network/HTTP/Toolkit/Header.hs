@@ -22,7 +22,7 @@ import qualified Data.ByteString.Char8 as B
 import qualified Data.CaseInsensitive as CI
 import           Network.HTTP.Types
 
-import           Network.HTTP.Toolkit.Type
+import           Network.HTTP.Toolkit.Error
 import           Network.HTTP.Toolkit.Connection
 
 -- | Message header size limit in bytes.
@@ -41,9 +41,9 @@ readMessageHeader = readMessageHeaderWithLimit defaultHeaderSizeLimit
 
 -- | Read `MessageHeader` from provided `Connection`.
 --
--- Throw `HeaderTooLarge` if the header size exceeds the specified `Limit`.
+-- Throws `HeaderTooLarge` if the header size exceeds the specified `Limit`.
 --
--- Throw `InvalidHeader` if header is malformed.
+-- Throws `InvalidHeader` if header is malformed.
 readMessageHeaderWithLimit :: Limit -> Connection -> IO (MessageHeader ByteString)
 readMessageHeaderWithLimit limit c = do
   hs <- readHeaderLines limit c
