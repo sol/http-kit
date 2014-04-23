@@ -18,7 +18,7 @@ data Connection = Connection {
 , _unread :: ByteString -> IO ()
 }
 
--- | Create a `Connection` from provided @IO@ action.
+-- | Create `Connection` from provided @IO@ action.
 makeConnection :: IO ByteString -> IO Connection
 makeConnection read = do
   ref <- newIORef []

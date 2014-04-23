@@ -34,7 +34,7 @@ readResponse = readResponseWithLimit defaultHeaderSizeLimit
 --
 -- Throws:
 --
--- * `InvalidStatusLine` if request-line is malformed.
+-- * `InvalidStatusLine` if status-line is malformed.
 --
 -- * `HeaderTooLarge` if the header size exceeds the specified `Limit`.
 --
