@@ -1,7 +1,7 @@
 module Network.HTTP.Toolkit.Connection (
   Connection(..)
-, connectionFromHandle
 , makeConnection
+, connectionFromHandle
 , connectionRead
 , connectionUnread
 , connectionReadAtLeast
@@ -20,11 +20,11 @@ data Connection = Connection {
 , _unread :: ByteString -> IO ()
 }
 
--- | Create `Connection` from provided `Handle`.
+-- | Create a `Connection` from provided `Handle`.
 connectionFromHandle :: Handle -> IO Connection
 connectionFromHandle h = makeConnection (B.hGetSome h 4096)
 
--- | Create `Connection` from provided @IO@ action.
+-- | Create a `Connection` from provided @IO@ action.
 makeConnection :: IO ByteString -> IO Connection
 makeConnection read = do
   ref <- newIORef []

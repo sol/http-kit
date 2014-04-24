@@ -1,26 +1,28 @@
 module Network.HTTP.Toolkit (
--- * Types
-  ToolkitError(..)
-
 -- * Connection
-, Connection
-, connectionFromHandle
+  Connection
 , makeConnection
+, connectionFromHandle
 
 -- * Handling requests
 , Request(..)
 , readRequestWithLimit
 , readRequest
+, sendRequest
 
 -- * Handling responses
 , Response(..)
 , readResponseWithLimit
 , readResponse
+, sendResponse
 
 -- * Handling message bodies
 , BodyReader
 , sendBody
 , consumeBody
+
+-- * Error type
+, ToolkitError(..)
 ) where
 
 import           Network.HTTP.Toolkit.Body
