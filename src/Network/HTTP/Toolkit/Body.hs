@@ -6,6 +6,7 @@ module Network.HTTP.Toolkit.Body (
 , makeBodyReader
 , consumeBody
 , sendBody
+, fromByteString
 
 -- * Handling of specific body types
 , maxChunkSize
@@ -19,6 +20,7 @@ import           Control.Applicative
 import           Control.Monad
 import           Control.Exception
 import           Text.Read (readMaybe)
+import           Data.Maybe
 import           Data.Char
 import           Data.Bits
 import           Data.IORef
@@ -101,6 +103,12 @@ consumeBody bodyReader = B.concat <$> go
 -- all input has been consumed.
 sendBody :: (ByteString -> IO ()) -> BodyReader -> IO ()
 sendBody send body = while (not . B.null) body send
+
+-- | Create a `BodyReader` from provided `ByteString`.
+fromByteString :: ByteString -> IO BodyReader
+fromByteString input = do
+  ref <- newIORef (Just input)
+  return $ atomicModifyIORef ref $ ((,) Nothing) . fromMaybe ""
 
 -- |
 -- Create a reader for when the body length is determined by the server closing

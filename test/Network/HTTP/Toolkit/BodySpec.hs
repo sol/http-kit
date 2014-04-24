@@ -56,6 +56,11 @@ formatChunkedBody (ChunkedBody chunks trailer) = mconcat (map formatChunk chunks
 
 spec :: Spec
 spec = do
+  describe "fromByteString" $ do
+    it "creates a BodyReader from provided ByteString" $ do
+      property $ \input -> do
+        (fromByteString input >>= consumeBody) `shouldReturn` input
+
   describe "makeLengthReader" $ do
     it "reads body with specified length" $ do
       property $ \body n -> do
