@@ -3,7 +3,6 @@ module Network.HTTP.Toolkit.Header (
   MessageHeader(..)
 , Limit
 , readMessageHeader
-, readMessageHeaderWithLimit
 , defaultHeaderSizeLimit
 , parseHeaderFields
 , sendHeader
@@ -38,21 +37,11 @@ data MessageHeader a = MessageHeader a [Header]
 --
 -- Throws:
 --
--- * `HeaderTooLarge` if the header size exceeds `defaultHeaderSizeLimit`.
---
--- * `InvalidHeader` if header is malformed.
-readMessageHeader :: Connection -> IO (MessageHeader ByteString)
-readMessageHeader = readMessageHeaderWithLimit defaultHeaderSizeLimit
-
--- | Read `MessageHeader` from provided `Connection`.
---
--- Throws:
---
 -- * `HeaderTooLarge` if the header size exceeds the specified `Limit`.
 --
 -- * `InvalidHeader` if header is malformed.
-readMessageHeaderWithLimit :: Limit -> Connection -> IO (MessageHeader ByteString)
-readMessageHeaderWithLimit limit c = do
+readMessageHeader :: Limit -> Connection -> IO (MessageHeader ByteString)
+readMessageHeader limit c = do
   hs <- readHeaderLines limit c
   case hs of
     x : xs -> maybe (throwIO InvalidHeader) (return . MessageHeader x) (parseHeaderFields xs)

@@ -48,7 +48,7 @@ readRequest = readRequestWithLimit defaultHeaderSizeLimit
 -- * `InvalidHeader` if header is malformed.
 readRequestWithLimit :: Limit -> Connection -> IO (Request BodyReader)
 readRequestWithLimit limit c = do
-  MessageHeader startLine headers <- readMessageHeaderWithLimit limit c
+  MessageHeader startLine headers <- readMessageHeader limit c
   (method, path) <- parseRequestLine_ startLine
   Request method path headers <$> makeBodyReader c (determineRequestBodyType headers)
 
