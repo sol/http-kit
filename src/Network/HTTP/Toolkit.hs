@@ -1,7 +1,6 @@
 module Network.HTTP.Toolkit (
 -- * Types
-  MessageHeader(..)
-, ToolkitError(..)
+  ToolkitError(..)
 
 -- * Connection
 , Connection
@@ -25,7 +24,6 @@ module Network.HTTP.Toolkit (
 
 import           Network.HTTP.Toolkit.Body
 import           Network.HTTP.Toolkit.Connection
-import           Network.HTTP.Toolkit.Header
 import           Network.HTTP.Toolkit.Request
 import           Network.HTTP.Toolkit.Response
 import           Network.HTTP.Toolkit.Error

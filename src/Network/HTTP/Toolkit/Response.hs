@@ -47,7 +47,7 @@ readResponse = readResponseWithLimit defaultHeaderSizeLimit
 -- * `InvalidHeader` if header is malformed.
 readResponseWithLimit :: Limit -> Method -> Connection -> IO (Response BodyReader)
 readResponseWithLimit limit method c = do
-  (MessageHeader startLine headers) <- readMessageHeader limit c
+  (startLine, headers) <- readMessageHeader limit c
   status <- parseStatusLine_ startLine
   Response status headers <$> makeBodyReader c (determineResponseBodyType method status headers)
 

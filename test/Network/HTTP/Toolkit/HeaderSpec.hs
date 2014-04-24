@@ -16,7 +16,7 @@ spec = do
   describe "readMessageHeader" $ do
     it "reads message header" $ do
       c <- mkConnection ["HTTP/1.1 200 OK\r\nfoo: 23\r\nbar: 42\r\n\r\n"]
-      readMessageHeader defaultHeaderSizeLimit c `shouldReturn` MessageHeader "HTTP/1.1 200 OK" [("foo", "23"), ("bar", "42")]
+      readMessageHeader defaultHeaderSizeLimit c `shouldReturn` ("HTTP/1.1 200 OK", [("foo", "23"), ("bar", "42")])
 
     context "when start-line is missing" $ do
       it "throws InvalidHeader" $ do

@@ -1,7 +1,6 @@
-{-# LANGUAGE OverloadedStrings, DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Network.HTTP.Toolkit.Header (
-  MessageHeader(..)
-, Limit
+  Limit
 , readMessageHeader
 , defaultHeaderSizeLimit
 , parseHeaderFields
@@ -15,8 +14,7 @@ module Network.HTTP.Toolkit.Header (
 import           Control.Applicative
 import           Control.Monad (when)
 import           Control.Exception
-import           Data.Foldable (Foldable, forM_)
-import           Data.Traversable (Traversable)
+import           Data.Foldable (forM_)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.CaseInsensitive as CI
@@ -28,24 +26,20 @@ import           Network.HTTP.Toolkit.Connection
 -- | Message header size limit in bytes.
 type Limit = Int
 
--- | An HTTP message header consiting of a start line and a list of header
--- fields.
-data MessageHeader a = MessageHeader a [Header]
-  deriving (Eq, Show, Functor, Foldable, Traversable)
-
--- | Read `MessageHeader` from provided `Connection`.
+-- | Read start-line and message headers from provided `Connection`
+-- (see <http://tools.ietf.org/html/rfc2616#section-4.1 RFC 2616, Section 4.1>).
 --
 -- Throws:
 --
--- * `HeaderTooLarge` if the header size exceeds the specified `Limit`.
+-- * `HeaderTooLarge` if start-line and headers together exceeds the specified size `Limit`
 --
--- * `InvalidHeader` if header is malformed.
-readMessageHeader :: Limit -> Connection -> IO (MessageHeader ByteString)
+-- * `InvalidHeader` if start-line is missing or a header is malformed
+readMessageHeader :: Limit -> Connection -> IO (ByteString, [Header])
 readMessageHeader limit c = do
   hs <- readHeaderLines limit c
-  case hs of
-    x : xs -> maybe (throwIO InvalidHeader) (return . MessageHeader x) (parseHeaderFields xs)
-    [] -> throwIO InvalidHeader
+  maybe (throwIO InvalidHeader) return $ case hs of
+    x : xs -> (,) x <$> parseHeaderFields xs
+    [] -> Nothing
 
 -- | Parse header fields according to
 -- <http://tools.ietf.org/html/rfc2616#section-4.2 RFC 2616, Section 4.2>.
