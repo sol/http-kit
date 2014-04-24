@@ -43,9 +43,9 @@ readRequest = readRequestWithLimit defaultHeaderSizeLimit
 --
 -- * `InvalidRequestLine` if request-line is malformed.
 --
--- * `HeaderTooLarge` if the header size exceeds the specified `Limit`.
+-- * `HeaderTooLarge` if request-line and headers together exceed the specified size `Limit`
 --
--- * `InvalidHeader` if header is malformed.
+-- * `InvalidHeader` if request-line is missing or a header is malformed
 readRequestWithLimit :: Limit -> Connection -> IO (Request BodyReader)
 readRequestWithLimit limit c = do
   (startLine, headers) <- readMessageHeader limit c

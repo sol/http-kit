@@ -6,14 +6,14 @@ import           Control.Exception
 import           Data.ByteString (ByteString)
 
 data ToolkitError =
-    -- | Parsing of HTTP request-line failed.
+    -- | The request-line of the message is malformed.
     InvalidRequestLine ByteString
-    -- | Parsing of HTTP status-line failed.
+    -- | The status-line of the message is malformed.
   | InvalidStatusLine ByteString
     -- | A header field is malformed.
   | InvalidHeader
-    -- | The message header exceeds the specified
-    -- `Network.HTTP.Toolkit.Header.Limit`.
+    -- | The start-line of the message and all header fields together exceed
+    -- the specified size `Network.HTTP.Toolkit.Header.Limit`.
   | HeaderTooLarge
     -- | The size of a body chunk exceeds
     -- `Network.HTTP.Toolkit.Body.maxChunkSize`.

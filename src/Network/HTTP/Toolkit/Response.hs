@@ -38,13 +38,16 @@ readResponse = readResponseWithLimit defaultHeaderSizeLimit
 
 -- | Read response from provided connection.
 --
+-- The corresponding request `Method` has to be specified so that the body length can be determined (see
+-- <http://tools.ietf.org/html/rfc2616#section-4.4 RFC 2616, Section 4.4>).
+--
 -- Throws:
 --
 -- * `InvalidStatusLine` if status-line is malformed.
 --
--- * `HeaderTooLarge` if the header size exceeds the specified `Limit`.
+-- * `HeaderTooLarge` if status-line and headers together exceed the specified size `Limit`
 --
--- * `InvalidHeader` if header is malformed.
+-- * `InvalidHeader` if status-line is missing or a header is malformed
 readResponseWithLimit :: Limit -> Method -> Connection -> IO (Response BodyReader)
 readResponseWithLimit limit method c = do
   (startLine, headers) <- readMessageHeader limit c

@@ -2,7 +2,7 @@ name:             http-kit
 version:          0.2.0
 synopsis:         A low-level HTTP library
 description:      A low-level HTTP library that can be used to build more
-                  sophisticated HTTP applications on top of it.
+                  sophisticated applications on top of it.
                   .
                   The design goals are:
                   .
@@ -10,7 +10,7 @@ description:      A low-level HTTP library that can be used to build more
                   bounded.
                   .
                   [efficient] Message bodies are read in chunks, so that they
-                  can be processed with constant space.
+                  can be processed in constant space.
                   .
                   [universal] No framework for streaming @IO@ is used.  This
                   allows you to build on top of it, using the libraries that

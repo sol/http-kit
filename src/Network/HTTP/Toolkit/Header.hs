@@ -31,7 +31,7 @@ type Limit = Int
 --
 -- Throws:
 --
--- * `HeaderTooLarge` if start-line and headers together exceeds the specified size `Limit`
+-- * `HeaderTooLarge` if start-line and headers together exceed the specified size `Limit`
 --
 -- * `InvalidHeader` if start-line is missing or a header is malformed
 readMessageHeader :: Limit -> Connection -> IO (ByteString, [Header])
