@@ -1,5 +1,6 @@
 module Network.HTTP.Toolkit.Connection (
   Connection(..)
+, connectionFromHandle
 , makeConnection
 , connectionRead
 , connectionUnread
@@ -8,6 +9,7 @@ module Network.HTTP.Toolkit.Connection (
 
 import           Prelude hiding (read)
 import           Control.Monad (join, unless)
+import           System.IO (Handle)
 import           Data.IORef
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
@@ -17,6 +19,10 @@ data Connection = Connection {
   _read :: IO ByteString
 , _unread :: ByteString -> IO ()
 }
+
+-- | Create `Connection` from provided `Handle`.
+connectionFromHandle :: Handle -> IO Connection
+connectionFromHandle h = makeConnection (B.hGetSome h 4096)
 
 -- | Create `Connection` from provided @IO@ action.
 makeConnection :: IO ByteString -> IO Connection

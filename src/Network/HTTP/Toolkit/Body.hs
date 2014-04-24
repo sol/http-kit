@@ -11,9 +11,7 @@ module Network.HTTP.Toolkit.Body (
 , maxChunkSize
 , makeChunkedReader
 , readChunkSize
-
 , makeLengthReader
-
 , makeUnlimitedReader
 ) where
 

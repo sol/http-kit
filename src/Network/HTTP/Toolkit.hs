@@ -4,6 +4,7 @@ module Network.HTTP.Toolkit (
 
 -- * Connection
 , Connection
+, connectionFromHandle
 , makeConnection
 
 -- * Handling requests
