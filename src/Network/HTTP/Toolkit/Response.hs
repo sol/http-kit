@@ -1,6 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, DeriveFunctor #-}
 module Network.HTTP.Toolkit.Response (
-  ResponseHeader
+  Response(..)
 , readResponse
 , readResponseWithLimit
 , parseStatusLine
@@ -12,11 +12,10 @@ module Network.HTTP.Toolkit.Response (
 ) where
 
 import           Control.Applicative
-import           Control.Monad (join, guard)
+import           Control.Monad (guard)
 import           Control.Exception
 import           Text.Read (readMaybe)
 import           Data.Maybe
-import           Data.Traversable (sequenceA)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B
 import           Network.HTTP.Types
@@ -26,11 +25,15 @@ import           Network.HTTP.Toolkit.Connection
 import           Network.HTTP.Toolkit.Header
 import           Network.HTTP.Toolkit.Body
 
-type ResponseHeader = MessageHeader Status
+data Response a = Response {
+  responseStatus :: Status
+, responseHeaders :: [Header]
+, responseBody :: a
+} deriving (Eq, Show, Functor)
 
 -- | Same as `readResponseWithLimit` with a `Limit` of
 -- `defaultHeaderSizeLimit`.
-readResponse :: Method -> Connection -> IO (ResponseHeader, BodyReader)
+readResponse :: Method -> Connection -> IO (Response BodyReader)
 readResponse = readResponseWithLimit defaultHeaderSizeLimit
 
 -- | Read response from provided connection.
@@ -42,10 +45,11 @@ readResponse = readResponseWithLimit defaultHeaderSizeLimit
 -- * `HeaderTooLarge` if the header size exceeds the specified `Limit`.
 --
 -- * `InvalidHeader` if header is malformed.
-readResponseWithLimit :: Limit -> Method -> Connection -> IO (ResponseHeader, BodyReader)
+readResponseWithLimit :: Limit -> Method -> Connection -> IO (Response BodyReader)
 readResponseWithLimit limit method c = do
-  r@(MessageHeader status headers) <- join $ sequenceA . fmap parseStatusLine_ <$> readMessageHeaderWithLimit limit c
-  (,) r <$> makeBodyReader c (determineResponseBodyType method status headers)
+  (MessageHeader startLine headers) <- readMessageHeaderWithLimit limit c
+  status <- parseStatusLine_ startLine
+  Response status headers <$> makeBodyReader c (determineResponseBodyType method status headers)
 
 parseStatusLine_ :: ByteString -> IO Status
 parseStatusLine_ input = maybe (throwIO $ InvalidStatusLine input) return (parseStatusLine input)
@@ -75,7 +79,7 @@ formatStatusLine :: Status -> ByteString
 formatStatusLine status = B.concat ["HTTP/1.1 ", B.pack $ show (statusCode status), " ", statusMessage status]
 
 -- | Send an HTTP response.
-sendResponse :: (ByteString -> IO ()) -> ResponseHeader -> BodyReader -> IO ()
-sendResponse send header body = do
-  sendHeader send (formatStatusLine <$> header)
+sendResponse :: (ByteString -> IO ()) -> (Response BodyReader) -> IO ()
+sendResponse send (Response status headers body) = do
+  sendHeader send (formatStatusLine status) headers
   sendBody send body

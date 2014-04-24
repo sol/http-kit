@@ -126,9 +126,9 @@ readLine c = fmap (\(n, xs) -> (n, stripCR xs)) . go
       | (not . B.null) bs && B.last bs == '\r' = B.init bs
       | otherwise = bs
 
--- | Send given message header.
-sendHeader :: (ByteString -> IO()) -> MessageHeader ByteString -> IO ()
-sendHeader send (MessageHeader startLine headers) = do
+-- | Send given start-line and message headers.
+sendHeader :: (ByteString -> IO()) -> ByteString -> [Header] -> IO ()
+sendHeader send startLine headers = do
   send startLine
   send "\r\n"
   forM_ headers $ \(k, v) -> do

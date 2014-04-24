@@ -25,7 +25,7 @@ spec = do
           , "5\r\nhello\r\n"
           , "0\r\n\r\n"
           ]
-        (snd <$> readResponse "GET" c >>= consumeBody) `shouldReturn` "5\r\nhello\r\n0\r\n\r\n"
+        (responseBody <$> readResponse "GET" c >>= consumeBody) `shouldReturn` "5\r\nhello\r\n0\r\n\r\n"
 
       context "when connection is closed early" $ do
         it "terminates body" $ do
@@ -36,7 +36,7 @@ spec = do
             , "5\r\nhel"
             , ""
             ]
-          (snd <$> readResponse "GET" c >>= consumeBody) `shouldReturn` "5\r\nhel"
+          (responseBody <$> readResponse "GET" c >>= consumeBody) `shouldReturn` "5\r\nhel"
 
   describe "determineResponseBodyType" $ do
     let arbitraryHeaders :: Gen [Header]

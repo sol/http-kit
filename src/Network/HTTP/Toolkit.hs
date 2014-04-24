@@ -8,12 +8,12 @@ module Network.HTTP.Toolkit (
 , makeConnection
 
 -- * Handling requests
-, RequestHeader
+, Request(..)
 , readRequestWithLimit
 , readRequest
 
 -- * Handling responses
-, ResponseHeader
+, Response(..)
 , readResponseWithLimit
 , readResponse
 
