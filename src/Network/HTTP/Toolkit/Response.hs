@@ -5,6 +5,9 @@ module Network.HTTP.Toolkit.Response (
 , readResponseWithLimit
 , parseStatusLine
 
+, sendResponse
+, formatStatusLine
+
 , determineResponseBodyType
 ) where
 
@@ -66,3 +69,13 @@ determineResponseBodyType method status headers = fromMaybe Unlimited $ none <|>
       || (100 <= code && code < 200)
       || code == 204
       || code == 304
+
+-- | Format status-line.
+formatStatusLine :: Status -> ByteString
+formatStatusLine status = B.concat ["HTTP/1.1 ", B.pack $ show (statusCode status), " ", statusMessage status]
+
+-- | Send an HTTP response.
+sendResponse :: (ByteString -> IO ()) -> ResponseHeader -> BodyReader -> IO ()
+sendResponse send header body = do
+  sendHeader send (formatStatusLine <$> header)
+  sendBody send body

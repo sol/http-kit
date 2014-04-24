@@ -65,7 +65,7 @@ determineRequestBodyType = fromMaybe None . bodyTypeFromHeaders
 formatRequestLine :: Method -> RequestPath -> ByteString
 formatRequestLine method path = B.unwords [method, path, "HTTP/1.1"]
 
--- | Seand an HTTP request.
+-- | Send an HTTP request.
 sendRequest :: (ByteString -> IO()) -> RequestHeader -> BodyReader -> IO ()
 sendRequest send header body = do
   sendHeader send (uncurry formatRequestLine <$> header)
