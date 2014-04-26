@@ -5,6 +5,7 @@ module Network.HTTP.Toolkit.Response (
 , readResponseWithLimit
 , parseStatusLine
 
+, simpleResponse
 , sendResponse
 , formatStatusLine
 
@@ -80,6 +81,15 @@ determineResponseBodyType method status headers = fromMaybe Unlimited $ none <|>
 -- | Format status-line.
 formatStatusLine :: Status -> ByteString
 formatStatusLine status = B.concat ["HTTP/1.1 ", B.pack $ show (statusCode status), " ", statusMessage status]
+
+-- | Send a simple HTTP response.  The provided `ByteString` is used as the
+-- message body.  A suitable @Content-Length@ header is added to the specified
+-- list of headers.
+simpleResponse :: (ByteString -> IO ()) -> Status -> [Header] -> ByteString -> IO ()
+simpleResponse send status headers_ body = do
+  fromByteString body >>= sendResponse send . Response status headers
+  where
+    headers = ("Content-Length", B.pack . show . B.length $ body) : headers_
 
 -- | Send an HTTP response.
 sendResponse :: (ByteString -> IO ()) -> (Response BodyReader) -> IO ()
