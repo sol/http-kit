@@ -85,6 +85,9 @@ formatStatusLine status = B.concat ["HTTP/1.1 ", B.pack $ show (statusCode statu
 -- | Send a simple HTTP response.  The provided `ByteString` is used as the
 -- message body.  A suitable @Content-Length@ header is added to the specified
 -- list of headers.
+--
+-- /Note:/ The first argument to this function is used to send the data.  For
+-- space efficiency it may be called multiple times.
 simpleResponse :: (ByteString -> IO ()) -> Status -> [Header] -> ByteString -> IO ()
 simpleResponse send status headers_ body = do
   fromByteString body >>= sendResponse send . Response status headers
@@ -92,6 +95,9 @@ simpleResponse send status headers_ body = do
     headers = ("Content-Length", B.pack . show . B.length $ body) : headers_
 
 -- | Send an HTTP response.
+--
+-- /Note:/ The first argument to this function is used to send the data.  For
+-- space efficiency it may be called multiple times.
 sendResponse :: (ByteString -> IO ()) -> (Response BodyReader) -> IO ()
 sendResponse send (Response status headers body) = do
   sendHeader send (formatStatusLine status) headers
