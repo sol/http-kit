@@ -113,7 +113,7 @@ readLine c = fmap (\(n, xs) -> (n, stripCR xs)) . go
 --
 -- /Note:/ The first argument to this function is used to send the data.  For
 -- space efficiency it may be called multiple times.
-sendHeader :: (ByteString -> IO()) -> ByteString -> [Header] -> IO ()
+sendHeader :: (ByteString -> IO ()) -> ByteString -> [Header] -> IO ()
 sendHeader send startLine headers = do
   send startLine
   send "\r\n"
