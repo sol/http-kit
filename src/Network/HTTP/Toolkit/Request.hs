@@ -71,6 +71,9 @@ formatRequestLine :: Method -> RequestPath -> ByteString
 formatRequestLine method path = B.unwords [method, path, "HTTP/1.1"]
 
 -- | Send an HTTP request.
+--
+-- /Note:/ The first argument to this function is used to send the data.  For
+-- space efficiency it may be called multiple times.
 sendRequest :: (ByteString -> IO()) -> Request BodyReader -> IO ()
 sendRequest send (Request method path headers body) = do
   sendHeader send (formatRequestLine method path) headers

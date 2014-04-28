@@ -15,6 +15,7 @@ module Network.HTTP.Toolkit (
 , readResponseWithLimit
 , readResponse
 , sendResponse
+, simpleResponse
 
 -- * Handling message bodies
 , BodyReader

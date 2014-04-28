@@ -101,6 +101,9 @@ consumeBody bodyReader = B.concat <$> go
 
 -- | Read input from provided `BodyReader` and wirte it to provided sink until
 -- all input has been consumed.
+--
+-- /Note:/ The first argument to this function is used to send the data.  For
+-- space efficiency it may be called multiple times.
 sendBody :: (ByteString -> IO ()) -> BodyReader -> IO ()
 sendBody send body = while (not . B.null) body send
 
