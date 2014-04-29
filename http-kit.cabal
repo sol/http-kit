@@ -1,5 +1,5 @@
 name:             http-kit
-version:          0.2.1
+version:          0.2.2
 synopsis:         A low-level HTTP library
 description:      A low-level HTTP library that can be used to build more
                   sophisticated applications on top of it.
