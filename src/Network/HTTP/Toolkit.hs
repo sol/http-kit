@@ -5,6 +5,7 @@ module Network.HTTP.Toolkit (
 , connectionFromHandle
 
 -- * Handling requests
+, RequestPath
 , Request(..)
 , readRequestWithLimit
 , readRequest
