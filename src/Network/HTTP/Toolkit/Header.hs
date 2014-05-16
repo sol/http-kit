@@ -83,15 +83,15 @@ readHeaderLines :: Limit -> Connection -> IO [ByteString]
 readHeaderLines n c = go n
   where
     go limit = do
-      (newLimit, bs) <- readLine c limit
+      (newLimit, bs) <- readHeaderLine c limit
       if B.null bs then return [] else (bs :) <$> go newLimit
 
 -- | The default message header size limit of 65536 bytes (64 KB).
 defaultHeaderSizeLimit :: Limit
 defaultHeaderSizeLimit = 64 * 1024
 
-readLine :: Connection -> Limit -> IO (Limit, ByteString)
-readLine c = fmap (\(n, xs) -> (n, stripCR xs)) . go
+readHeaderLine :: Connection -> Limit -> IO (Limit, ByteString)
+readHeaderLine c = fmap (\(n, xs) -> (n, stripCR xs)) . go
   where
     go limit = do
       bs <- connectionRead c
