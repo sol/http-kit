@@ -33,6 +33,11 @@ spec = do
         c <- mkConnection ("GET / HTTP/1.1" : repeat "foo: 23\r\n")
         readMessageHeader defaultHeaderSizeLimit c `shouldThrow` (== HeaderTooLarge)
 
+    context "when connection returns a chunk that exceeds defaultHeaderSizeLimit" $ do
+      it "reads message header" $ do -- regression test for #2
+        c <- mkConnection ["HTTP/1.1 200 OK\r\nfoo: 23\r\nbar: 42\r\n\r\n" <> mconcat (replicate 1000000 "foo")]
+        readMessageHeader defaultHeaderSizeLimit c `shouldReturn` ("HTTP/1.1 200 OK", [("foo", "23"), ("bar", "42")])
+
   describe "combineHeaderLines" $ do
     it "strips trailing whitespace" $ do
       combineHeaderLines ["foo\r", "bar\t", "baz \t\r"] `shouldBe` ["foo", "bar", "baz"]

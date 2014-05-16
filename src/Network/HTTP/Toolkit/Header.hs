@@ -83,28 +83,26 @@ readHeaderLines :: Limit -> Connection -> IO [ByteString]
 readHeaderLines n c = go n
   where
     go limit = do
-      (newLimit, bs) <- readHeaderLine c limit
-      if B.null bs then return [] else (bs :) <$> go newLimit
+      bs <- readHeaderLine c limit
+      if B.null bs then return [] else (bs :) <$> go (limit - B.length bs)
 
 -- | The default message header size limit of 65536 bytes (64 KB).
 defaultHeaderSizeLimit :: Limit
 defaultHeaderSizeLimit = 64 * 1024
 
-readHeaderLine :: Connection -> Limit -> IO (Limit, ByteString)
-readHeaderLine c = fmap (\(n, xs) -> (n, stripCR xs)) . go
+readHeaderLine :: Connection -> Limit -> IO ByteString
+readHeaderLine c = fmap stripCR . go
   where
     go limit = do
+      when (limit < 0) (throwIO HeaderTooLarge)
       bs <- connectionRead c
-      let n = B.length bs
-          newLimit = limit - n
-      when (newLimit < 0) (throwIO HeaderTooLarge)
       case B.break (== '\n') bs of
         (xs, "") -> do
-          (ll, ys) <- go newLimit
-          return (ll, xs `B.append` ys)
+          ys <- go (limit - B.length xs)
+          return (xs `B.append` ys)
         (xs, ys) -> do
           connectionUnread c (B.drop 1 ys)
-          return (newLimit, xs)
+          return xs
     stripCR bs
       | (not . B.null) bs && B.last bs == '\r' = B.init bs
       | otherwise = bs
