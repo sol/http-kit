@@ -124,8 +124,9 @@ makeUnlimitedReader c = do
     if done
       then return ""
       else do
-        xs <- connectionRead c
-        when (B.null xs) $ writeIORef ref True
+        xs <- connectionRead c `catchOnly` UnexpectedEndOfInput $ do
+          writeIORef ref True
+          return ""
         return xs
 
 -- | Create a reader for bodies with a specified length.
@@ -183,6 +184,9 @@ makeChunkedReader conn = do
         connectionRead conn >>= handleChunkData ref n
       Trailer -> readTrailer ref
       Done -> return ""
+    `catchOnly` UnexpectedEndOfInput $ do
+      writeIORef ref Done
+      return ""
   where
     handleChunkData :: IORef State -> Int -> ByteString -> IO ByteString
     handleChunkData ref n bs = do
