@@ -1,6 +1,15 @@
 module Network.HTTP.Toolkit (
+-- * Exceptions
+-- |
+-- * All functions that consume input fail with `UnexpectedEndOfInput` if the
+--   input ends before the function can completely successfully.
+--
+-- * All cases where a function may fail with an exception other than
+--   @UnexpectedEndOfInput@ are documented thoroughly on a per function level.
+--
+  ToolkitError(..)
 -- * Connection
-  Connection
+, Connection
 , makeConnection
 , connectionFromHandle
 
@@ -22,9 +31,6 @@ module Network.HTTP.Toolkit (
 , BodyReader
 , sendBody
 , consumeBody
-
--- * Error type
-, ToolkitError(..)
 ) where
 
 import           Network.HTTP.Toolkit.Body

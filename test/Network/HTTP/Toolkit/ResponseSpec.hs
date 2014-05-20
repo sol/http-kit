@@ -7,6 +7,7 @@ import           Data.Foldable (forM_)
 import qualified Data.ByteString.Char8 as B
 import           Network.HTTP.Types
 
+import           Network.HTTP.Toolkit.Error
 import           Network.HTTP.Toolkit.Body
 import           Network.HTTP.Toolkit.Response
 
@@ -28,7 +29,7 @@ spec = do
         (responseBody <$> readResponse "GET" c >>= consumeBody) `shouldReturn` "5\r\nhello\r\n0\r\n\r\n"
 
       context "when connection is closed early" $ do
-        it "terminates body" $ do
+        it "terminates body (according to RFC 2616, Section 4.4, (2))" $ do
           c <- mkConnection [
               "HTTP/1.1 200 OK\r\n"
             , "Transfer-Encoding: chunked\r\n"
@@ -37,6 +38,11 @@ spec = do
             , ""
             ]
           (responseBody <$> readResponse "GET" c >>= consumeBody) `shouldReturn` "5\r\nhel"
+
+    context "when connection is closed early" $ do
+      it "throws UnexpectedEndOfInput" $ do
+        c <- mkConnection ("HTTP/1.1 200 OK\r\n" : "Transfer-Encoding: chunked" : repeat "")
+        (responseBody <$> readResponse "GET" c >>= consumeBody) `shouldThrow` (== UnexpectedEndOfInput)
 
   describe "determineResponseBodyType" $ do
     let arbitraryHeaders :: Gen [Header]

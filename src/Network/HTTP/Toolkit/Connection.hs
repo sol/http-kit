@@ -8,11 +8,14 @@ module Network.HTTP.Toolkit.Connection (
 ) where
 
 import           Prelude hiding (read)
-import           Control.Monad (join, unless)
+import           Control.Monad (join, when, unless)
+import           Control.Exception
 import           System.IO (Handle)
 import           Data.IORef
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
+
+import           Network.HTTP.Toolkit.Error
 
 -- | An abstract connection type that allows to read and unread input.
 data Connection = Connection {
@@ -37,7 +40,10 @@ makeConnection read = do
 
 -- | Read some input.
 connectionRead :: Connection -> IO ByteString
-connectionRead = _read
+connectionRead c = do
+  bs <- _read c
+  when (B.null bs) $ throwIO UnexpectedEndOfInput
+  return bs
 
 -- | Push back some input.  The pushed back input will be returned by a later
 -- call to `connectionRead`.

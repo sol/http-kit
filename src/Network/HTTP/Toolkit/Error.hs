@@ -2,12 +2,15 @@
 module Network.HTTP.Toolkit.Error where
 
 import           Data.Typeable
+import           Control.Monad (guard)
 import           Control.Exception
 import           Data.ByteString (ByteString)
 
 data ToolkitError =
+    -- | The input ended unpexpectedly while reading a message.
+    UnexpectedEndOfInput
     -- | The request-line of the message is malformed.
-    InvalidRequestLine ByteString
+  | InvalidRequestLine ByteString
     -- | The status-line of the message is malformed.
   | InvalidStatusLine ByteString
     -- | A header field is malformed.
@@ -23,3 +26,6 @@ data ToolkitError =
   deriving (Eq, Show, Typeable)
 
 instance Exception ToolkitError
+
+catchOnly :: (Eq e, Exception e) => IO a -> e -> IO a -> IO a
+(action `catchOnly` e) handler = catchJust (guard . (== e)) action $ \() -> handler
