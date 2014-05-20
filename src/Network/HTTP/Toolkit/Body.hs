@@ -159,35 +159,36 @@ data State = More Int Where | Trailer | Done
 makeChunkedReader :: Connection -> IO BodyReader
 makeChunkedReader conn = do
   ref <- newIORef (More 0 Data)
-  return $ do
-    c <- readIORef ref
-    case c of
-      More 0 Data -> do
-        (n, xs) <- readChunkSize conn
-        writeIORef ref (More n Extension)
-        return xs
-      More n Extension -> do
-        bs <- connectionRead conn
-        case breakOnNewline bs of
-          ("", _) ->
-            if n > 0
-              then do
-                handleChunkData ref (n + 3) bs
-              else do
-                writeIORef ref Trailer
-                connectionUnread conn bs
-                readTrailer ref
-          (xs, ys) -> do
-            connectionUnread conn ys
-            return xs
-      More n Data -> do
-        connectionRead conn >>= handleChunkData ref n
-      Trailer -> readTrailer ref
-      Done -> return ""
-    `catchOnly` UnexpectedEndOfInput $ do
-      writeIORef ref Done
-      return ""
+  return $ go ref `catchOnly` UnexpectedEndOfInput $ do
+    writeIORef ref Done
+    return ""
   where
+    go ref = do
+      c <- readIORef ref
+      case c of
+        More 0 Data -> do
+          (n, xs) <- readChunkSize conn
+          writeIORef ref (More n Extension)
+          return xs
+        More n Extension -> do
+          bs <- connectionRead conn
+          case breakOnNewline bs of
+            ("", _) ->
+              if n > 0
+                then do
+                  handleChunkData ref (n + 3) bs
+                else do
+                  writeIORef ref Trailer
+                  connectionUnread conn bs
+                  readTrailer ref
+            (xs, ys) -> do
+              connectionUnread conn ys
+              return xs
+        More n Data -> do
+          connectionRead conn >>= handleChunkData ref n
+        Trailer -> readTrailer ref
+        Done -> return ""
+
     handleChunkData :: IORef State -> Int -> ByteString -> IO ByteString
     handleChunkData ref n bs = do
       let (xs, ys) = B.splitAt n bs
