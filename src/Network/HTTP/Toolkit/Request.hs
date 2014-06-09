@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveFunctor #-}
+{-# LANGUAGE OverloadedStrings, DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 module Network.HTTP.Toolkit.Request (
   RequestPath
 , Request(..)
@@ -15,6 +15,8 @@ module Network.HTTP.Toolkit.Request (
 import           Control.Applicative
 import           Control.Exception
 import           Data.Maybe
+import           Data.Foldable
+import           Data.Traversable
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B
 import           Network.HTTP.Types
@@ -31,7 +33,7 @@ data Request a = Request {
 , requestPath :: RequestPath
 , requestHeaders :: [Header]
 , requestBody :: a
-} deriving (Eq, Show, Functor)
+} deriving (Eq, Show, Functor, Foldable, Traversable)
 
 -- | Same as `readRequestWithLimit` with a `Limit` of `defaultHeaderSizeLimit`.
 readRequest :: Connection -> IO (Request BodyReader)

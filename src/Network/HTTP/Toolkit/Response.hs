@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, DeriveFunctor #-}
+{-# LANGUAGE OverloadedStrings, DeriveFunctor, DeriveFoldable, DeriveTraversable #-}
 module Network.HTTP.Toolkit.Response (
   Response(..)
 , readResponse
@@ -17,6 +17,8 @@ import           Control.Monad (guard)
 import           Control.Exception
 import           Text.Read (readMaybe)
 import           Data.Maybe
+import           Data.Foldable
+import           Data.Traversable
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B
 import           Network.HTTP.Types
@@ -30,7 +32,7 @@ data Response a = Response {
   responseStatus :: Status
 , responseHeaders :: [Header]
 , responseBody :: a
-} deriving (Eq, Show, Functor)
+} deriving (Eq, Show, Functor, Foldable, Traversable)
 
 -- | Same as `readResponseWithLimit` with a `Limit` of
 -- `defaultHeaderSizeLimit`.
