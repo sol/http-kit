@@ -15,27 +15,27 @@ spec :: Spec
 spec = do
   describe "readMessageHeader" $ do
     it "reads message header" $ do
-      c <- mkConnection ["HTTP/1.1 200 OK\r\nfoo: 23\r\nbar: 42\r\n\r\n"]
+      c <- mkInputStream ["HTTP/1.1 200 OK\r\nfoo: 23\r\nbar: 42\r\n\r\n"]
       readMessageHeader defaultHeaderSizeLimit c `shouldReturn` ("HTTP/1.1 200 OK", [("foo", "23"), ("bar", "42")])
 
     context "when start-line is missing" $ do
       it "throws InvalidHeader" $ do
-        c <- mkConnection ["\r\n\r\n"]
+        c <- mkInputStream ["\r\n\r\n"]
         readMessageHeader defaultHeaderSizeLimit c `shouldThrow` (== InvalidHeader)
 
     context "when header is malformed" $ do
       it "throws InvalidHeader" $ do
-        c <- mkConnection ["HTTP/1.1 200 OK\r\nfoo\r\n\r\n"]
+        c <- mkInputStream ["HTTP/1.1 200 OK\r\nfoo\r\n\r\n"]
         readMessageHeader defaultHeaderSizeLimit c `shouldThrow` (== InvalidHeader)
 
     context "when attacker sends infinite header" $ do
       it "throws HeaderTooLarge" $ do
-        c <- mkConnection ("GET / HTTP/1.1" : repeat "foo: 23\r\n")
+        c <- mkInputStream ("GET / HTTP/1.1" : repeat "foo: 23\r\n")
         readMessageHeader defaultHeaderSizeLimit c `shouldThrow` (== HeaderTooLarge)
 
-    context "when connection returns a chunk that exceeds defaultHeaderSizeLimit" $ do
+    context "when input chunk exceeds defaultHeaderSizeLimit" $ do
       it "reads message header" $ do -- regression test for #2
-        c <- mkConnection ["HTTP/1.1 200 OK\r\nfoo: 23\r\nbar: 42\r\n\r\n" <> mconcat (replicate 1000000 "foo")]
+        c <- mkInputStream ["HTTP/1.1 200 OK\r\nfoo: 23\r\nbar: 42\r\n\r\n" <> mconcat (replicate 1000000 "foo")]
         readMessageHeader defaultHeaderSizeLimit c `shouldReturn` ("HTTP/1.1 200 OK", [("foo", "23"), ("bar", "42")])
 
   describe "combineHeaderLines" $ do
@@ -53,13 +53,13 @@ spec = do
   describe "readHeaderLines" $ do
     it "reads header lines" $ do
       property $ \n -> do
-        c <- mkConnection (slice n "foo\r\nbar\r\nbaz\r\n\r\n")
+        c <- mkInputStream (slice n "foo\r\nbar\r\nbaz\r\n\r\n")
         readHeaderLines defaultHeaderSizeLimit c `shouldReturn` ["foo", "bar", "baz"]
 
     it "reads *arbitrary* header lines" $ do
       property $ \xs n -> do
         let ys = filter ((&&) <$> not . B.null <*> B.notElem '\n') xs
-        c <- mkConnection (slice n $ B.intercalate "\r\n" ys `B.append` "\r\n\r\n")
+        c <- mkInputStream (slice n $ B.intercalate "\r\n" ys `B.append` "\r\n\r\n")
         readHeaderLines maxBound c `shouldReturn` ys
 
   describe "parseHeaderFields" $ do

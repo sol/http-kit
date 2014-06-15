@@ -19,7 +19,7 @@ spec = do
   describe "readResponse" $ do
     context "when Transfer-Encoding is specified" $ do
       it "reads chunked body" $ do
-        c <- mkConnection [
+        c <- mkInputStream [
             "HTTP/1.1 200 OK\r\n"
           , "Transfer-Encoding: chunked\r\n"
           , "\r\n"
@@ -28,9 +28,9 @@ spec = do
           ]
         (responseBody <$> readResponse "GET" c >>= consumeBody) `shouldReturn` "5\r\nhello\r\n0\r\n\r\n"
 
-      context "when connection is closed early" $ do
+      context "when input ends early" $ do
         it "terminates body (according to RFC 2616, Section 4.4, (2))" $ do
-          c <- mkConnection [
+          c <- mkInputStream [
               "HTTP/1.1 200 OK\r\n"
             , "Transfer-Encoding: chunked\r\n"
             , "\r\n"
@@ -39,9 +39,9 @@ spec = do
             ]
           (responseBody <$> readResponse "GET" c >>= consumeBody) `shouldReturn` "5\r\nhel"
 
-    context "when connection is closed early" $ do
+    context "when input ends early" $ do
       it "throws UnexpectedEndOfInput" $ do
-        c <- mkConnection ("HTTP/1.1 200 OK\r\n" : "Transfer-Encoding: chunked" : repeat "")
+        c <- mkInputStream ("HTTP/1.1 200 OK\r\n" : "Transfer-Encoding: chunked" : repeat "")
         (responseBody <$> readResponse "GET" c >>= consumeBody) `shouldThrow` (== UnexpectedEndOfInput)
 
   describe "determineResponseBodyType" $ do

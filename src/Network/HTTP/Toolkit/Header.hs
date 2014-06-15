@@ -21,12 +21,12 @@ import qualified Data.CaseInsensitive as CI
 import           Network.HTTP.Types
 
 import           Network.HTTP.Toolkit.Error
-import           Network.HTTP.Toolkit.Connection
+import           Network.HTTP.Toolkit.InputStream
 
 -- | Message header size limit in bytes.
 type Limit = Int
 
--- | Read start-line and message headers from provided `Connection`
+-- | Read start-line and message headers from provided `InputStream`
 -- (see <http://tools.ietf.org/html/rfc2616#section-4.1 RFC 2616, Section 4.1>).
 --
 -- Throws:
@@ -34,7 +34,7 @@ type Limit = Int
 -- * `HeaderTooLarge` if start-line and headers together exceed the specified size `Limit`
 --
 -- * `InvalidHeader` if start-line is missing or a header is malformed
-readMessageHeader :: Limit -> Connection -> IO (ByteString, [Header])
+readMessageHeader :: Limit -> InputStream -> IO (ByteString, [Header])
 readMessageHeader limit c = do
   hs <- readHeaderLines limit c
   maybe (throwIO InvalidHeader) return $ case hs of
@@ -79,7 +79,7 @@ spanStartsWithWhitespace = go
         (_, y) -> let (ys, zs) = go xs in (stripEnd y : ys, zs)
       [] -> ([], [])
 
-readHeaderLines :: Limit -> Connection -> IO [ByteString]
+readHeaderLines :: Limit -> InputStream -> IO [ByteString]
 readHeaderLines n c = go n
   where
     go limit = do
@@ -90,18 +90,18 @@ readHeaderLines n c = go n
 defaultHeaderSizeLimit :: Limit
 defaultHeaderSizeLimit = 64 * 1024
 
-readHeaderLine :: Connection -> Limit -> IO ByteString
+readHeaderLine :: InputStream -> Limit -> IO ByteString
 readHeaderLine c = fmap stripCR . go
   where
     go limit = do
       when (limit < 0) (throwIO HeaderTooLarge)
-      bs <- connectionRead c
+      bs <- readInput c
       case B.break (== '\n') bs of
         (xs, "") -> do
           ys <- go (limit - B.length xs)
           return (xs `B.append` ys)
         (xs, ys) -> do
-          connectionUnread c (B.drop 1 ys)
+          unreadInput c (B.drop 1 ys)
           return xs
     stripCR bs
       | (not . B.null) bs && B.last bs == '\r' = B.init bs

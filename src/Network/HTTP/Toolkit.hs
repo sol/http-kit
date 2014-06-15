@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-deprecations #-}
 module Network.HTTP.Toolkit (
 -- * Exceptions
 -- |
@@ -8,10 +9,11 @@ module Network.HTTP.Toolkit (
 --   @UnexpectedEndOfInput@ are documented thoroughly on a per function level.
 --
   ToolkitError(..)
--- * Connection
-, Connection
-, makeConnection
-, connectionFromHandle
+
+-- * Input handling
+, InputStream(..)
+, makeInputStream
+, inputStreamFromHandle
 
 -- * Handling requests
 , RequestPath
@@ -31,9 +33,15 @@ module Network.HTTP.Toolkit (
 , BodyReader
 , sendBody
 , consumeBody
+
+-- * Deprecated types and functions
+, Connection
+, makeConnection
+, connectionFromHandle
 ) where
 
 import           Network.HTTP.Toolkit.Body
+import           Network.HTTP.Toolkit.InputStream
 import           Network.HTTP.Toolkit.Connection
 import           Network.HTTP.Toolkit.Request
 import           Network.HTTP.Toolkit.Response

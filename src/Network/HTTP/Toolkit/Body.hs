@@ -32,7 +32,7 @@ import           Network.HTTP.Types
 
 import           Network.HTTP.Toolkit.Util
 import           Network.HTTP.Toolkit.Error
-import           Network.HTTP.Toolkit.Connection
+import           Network.HTTP.Toolkit.InputStream
 
 data BodyType =
     -- | The message has no body.
@@ -62,8 +62,8 @@ bodyTypeFromHeaders headers = chunked <|> length_
     chunked = lookup "Transfer-Encoding" headers >>= guard . (/= "identity") >> Just Chunked
     length_ = Length <$> (lookup "Content-Length" headers >>= readMaybe . B8.unpack)
 
--- | Create a `BodyReader` from provided `Connection` and specified `BodyType`.
-makeBodyReader :: Connection -> BodyType -> IO BodyReader
+-- | Create a `BodyReader` from provided `InputStream` and specified `BodyType`.
+makeBodyReader :: InputStream -> BodyType -> IO BodyReader
 makeBodyReader c bodyType = case bodyType of
   Chunked -> makeChunkedReader c
   Length n -> makeLengthReader n c
@@ -116,7 +116,7 @@ fromByteString input = do
 -- |
 -- Create a reader for when the body length is determined by the server closing
 -- the connection.
-makeUnlimitedReader :: Connection -> IO BodyReader
+makeUnlimitedReader :: InputStream -> IO BodyReader
 makeUnlimitedReader c = do
   ref <- newIORef False
   return $ do
@@ -124,13 +124,13 @@ makeUnlimitedReader c = do
     if done
       then return ""
       else do
-        xs <- connectionRead c `catchOnly` UnexpectedEndOfInput $ do
+        xs <- readInput c `catchOnly` UnexpectedEndOfInput $ do
           writeIORef ref True
           return ""
         return xs
 
 -- | Create a reader for bodies with a specified length.
-makeLengthReader :: Int -> Connection -> IO BodyReader
+makeLengthReader :: Int -> InputStream -> IO BodyReader
 makeLengthReader total c = do
   ref <- newIORef total
   return $ do
@@ -138,11 +138,11 @@ makeLengthReader total c = do
     if n == 0
       then return ""
       else do
-        bs <- connectionRead c
+        bs <- readInput c
         case B.splitAt n bs of
           (xs, ys) -> do
             writeIORef ref (n - B.length xs)
-            connectionUnread c ys
+            unreadInput c ys
             return xs
 
 data Where = Data | Extension
@@ -156,7 +156,7 @@ data State = More Int Where | Trailer | Done
 -- * `InvalidChunk` if the body is malformed.
 --
 -- * `ChunkTooLarge` if the size of a chunk exceeds `maxChunkSize`.
-makeChunkedReader :: Connection -> IO BodyReader
+makeChunkedReader :: InputStream -> IO BodyReader
 makeChunkedReader conn = do
   ref <- newIORef (More 0 Data)
   return $ go ref `catchOnly` UnexpectedEndOfInput $ do
@@ -171,7 +171,7 @@ makeChunkedReader conn = do
           writeIORef ref (More n Extension)
           return xs
         More n Extension -> do
-          bs <- connectionRead conn
+          bs <- readInput conn
           case breakOnNewline bs of
             ("", _) ->
               if n > 0
@@ -179,37 +179,37 @@ makeChunkedReader conn = do
                   handleChunkData ref (n + 3) bs
                 else do
                   writeIORef ref Trailer
-                  connectionUnread conn bs
+                  unreadInput conn bs
                   readTrailer ref
             (xs, ys) -> do
-              connectionUnread conn ys
+              unreadInput conn ys
               return xs
         More n Data -> do
-          connectionRead conn >>= handleChunkData ref n
+          readInput conn >>= handleChunkData ref n
         Trailer -> readTrailer ref
         Done -> return ""
 
     handleChunkData :: IORef State -> Int -> ByteString -> IO ByteString
     handleChunkData ref n bs = do
       let (xs, ys) = B.splitAt n bs
-      connectionUnread conn ys
+      unreadInput conn ys
       writeIORef ref (More (n - B.length xs) Data)
       return xs
 
     readTrailer :: IORef State -> IO ByteString
     readTrailer ref = do
-      xs <- connectionReadAtLeast conn 3
+      xs <- readAtLeast conn 3
       if "\n\r\n" `B.isPrefixOf` xs
         then do
           writeIORef ref Done
           let (ys, zs) = B.splitAt 3 xs
-          connectionUnread conn zs
+          unreadInput conn zs
           return ys
         else do
           let Just (y, ys) = B.uncons xs
           case breakOnNewline ys of
             (zs, rest) -> do
-              connectionUnread conn rest
+              unreadInput conn rest
               return (y `B.cons` zs)
 
 breakOnNewline :: ByteString -> (ByteString, ByteString)
@@ -221,7 +221,7 @@ breakOnNewline = breakByte 10
 -- Throws:
 --
 -- * `ChunkTooLarge` if chunk size exceeds `maxChunkSize`.
-readChunkSize :: Connection -> IO (Int, ByteString)
+readChunkSize :: InputStream -> IO (Int, ByteString)
 readChunkSize conn = do
   xs <- go 0
   case readHex (B8.unpack xs) of
@@ -230,7 +230,7 @@ readChunkSize conn = do
   where
     go :: Int -> IO ByteString
     go n = do
-      bs <- connectionRead conn
+      bs <- readInput conn
       case B8.span isHexDigit bs of
         (xs, ys) -> do
           let m = (n + B.length xs)

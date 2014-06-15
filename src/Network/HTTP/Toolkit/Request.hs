@@ -22,7 +22,7 @@ import qualified Data.ByteString.Char8 as B
 import           Network.HTTP.Types
 
 import           Network.HTTP.Toolkit.Error
-import           Network.HTTP.Toolkit.Connection
+import           Network.HTTP.Toolkit.InputStream
 import           Network.HTTP.Toolkit.Header
 import           Network.HTTP.Toolkit.Body
 
@@ -36,10 +36,10 @@ data Request a = Request {
 } deriving (Eq, Show, Functor, Foldable, Traversable)
 
 -- | Same as `readRequestWithLimit` with a `Limit` of `defaultHeaderSizeLimit`.
-readRequest :: Connection -> IO (Request BodyReader)
+readRequest :: InputStream -> IO (Request BodyReader)
 readRequest = readRequestWithLimit defaultHeaderSizeLimit
 
--- | Read request from provided connection.
+-- | Read request from provided `InputStream`.
 --
 -- Throws:
 --
@@ -48,7 +48,7 @@ readRequest = readRequestWithLimit defaultHeaderSizeLimit
 -- * `HeaderTooLarge` if request-line and headers together exceed the specified size `Limit`
 --
 -- * `InvalidHeader` if request-line is missing or a header is malformed
-readRequestWithLimit :: Limit -> Connection -> IO (Request BodyReader)
+readRequestWithLimit :: Limit -> InputStream -> IO (Request BodyReader)
 readRequestWithLimit limit c = do
   (startLine, headers) <- readMessageHeader limit c
   (method, path) <- parseRequestLine_ startLine

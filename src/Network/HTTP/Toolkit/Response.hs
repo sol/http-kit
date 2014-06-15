@@ -24,7 +24,7 @@ import qualified Data.ByteString.Char8 as B
 import           Network.HTTP.Types
 
 import           Network.HTTP.Toolkit.Error
-import           Network.HTTP.Toolkit.Connection
+import           Network.HTTP.Toolkit.InputStream
 import           Network.HTTP.Toolkit.Header
 import           Network.HTTP.Toolkit.Body
 
@@ -36,10 +36,10 @@ data Response a = Response {
 
 -- | Same as `readResponseWithLimit` with a `Limit` of
 -- `defaultHeaderSizeLimit`.
-readResponse :: Method -> Connection -> IO (Response BodyReader)
+readResponse :: Method -> InputStream -> IO (Response BodyReader)
 readResponse = readResponseWithLimit defaultHeaderSizeLimit
 
--- | Read response from provided connection.
+-- | Read response from provided `InputStream`.
 --
 -- The corresponding request `Method` has to be specified so that the body length can be determined (see
 -- <http://tools.ietf.org/html/rfc2616#section-4.4 RFC 2616, Section 4.4>).
@@ -51,7 +51,7 @@ readResponse = readResponseWithLimit defaultHeaderSizeLimit
 -- * `HeaderTooLarge` if status-line and headers together exceed the specified size `Limit`
 --
 -- * `InvalidHeader` if status-line is missing or a header is malformed
-readResponseWithLimit :: Limit -> Method -> Connection -> IO (Response BodyReader)
+readResponseWithLimit :: Limit -> Method -> InputStream -> IO (Response BodyReader)
 readResponseWithLimit limit method c = do
   (startLine, headers) <- readMessageHeader limit c
   status <- parseStatusLine_ startLine

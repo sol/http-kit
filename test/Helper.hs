@@ -4,7 +4,7 @@ module Helper (
 , module Test.QuickCheck
 , module Control.Applicative
 , module Data.Monoid
-, mkConnection
+, mkInputStream
 , slice
 ) where
 
@@ -19,7 +19,7 @@ import           Data.Monoid
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 
-import           Network.HTTP.Toolkit.Connection
+import           Network.HTTP.Toolkit.InputStream
 
 slice :: Int -> ByteString -> [ByteString]
 slice m bs
@@ -34,11 +34,11 @@ slice m bs
       (ys, "") -> return ys
       (ys, zs) -> ys : go zs
 
-mkConnection :: [ByteString] -> IO Connection
-mkConnection input = do
+mkInputStream :: [ByteString] -> IO InputStream
+mkInputStream input = do
   mvar <- newMVar input
   let cRead = modifyMVar mvar $ \bs -> case bs of
         x:xs -> return (xs, x)
         _ -> throwIO (userError "tried to read after body was fully consumed")
   let cUnread bs = modifyMVar_ mvar (return . (bs:))
-  return $ Connection cRead cUnread
+  return $ InputStream cRead cUnread
