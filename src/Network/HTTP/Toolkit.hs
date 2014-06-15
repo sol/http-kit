@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-deprecations #-}
 module Network.HTTP.Toolkit (
 -- * Exceptions
 -- |
@@ -33,16 +32,10 @@ module Network.HTTP.Toolkit (
 , BodyReader
 , sendBody
 , consumeBody
-
--- * Deprecated types and functions
-, Connection
-, makeConnection
-, connectionFromHandle
 ) where
 
 import           Network.HTTP.Toolkit.Body
 import           Network.HTTP.Toolkit.InputStream
-import           Network.HTTP.Toolkit.Connection
 import           Network.HTTP.Toolkit.Request
 import           Network.HTTP.Toolkit.Response
 import           Network.HTTP.Toolkit.Error

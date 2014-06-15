@@ -36,7 +36,6 @@ library
   exposed-modules:
       Network.HTTP.Toolkit
       Network.HTTP.Toolkit.Body
-      Network.HTTP.Toolkit.Connection
       Network.HTTP.Toolkit.InputStream
       Network.HTTP.Toolkit.Header
       Network.HTTP.Toolkit.Request
