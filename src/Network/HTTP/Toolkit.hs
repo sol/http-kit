@@ -11,7 +11,7 @@ module Network.HTTP.Toolkit (
   ToolkitError(..)
 
 -- * Input handling
-, InputStream(..)
+, InputStream
 , makeInputStream
 , inputStreamFromHandle
 
