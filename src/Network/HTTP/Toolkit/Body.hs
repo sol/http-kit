@@ -176,7 +176,8 @@ makeChunkedReader conn = do
             ("", _) ->
               if n > 0
                 then do
-                  handleChunkData ref (n + 3) bs
+                  unreadInput conn bs
+                  handleChunkData ref (n + 3)
                 else do
                   writeIORef ref Trailer
                   unreadInput conn bs
@@ -185,12 +186,13 @@ makeChunkedReader conn = do
               unreadInput conn ys
               return xs
         More n Data -> do
-          readInput conn >>= handleChunkData ref n
+          handleChunkData ref n
         Trailer -> readTrailer ref
         Done -> return ""
 
-    handleChunkData :: IORef State -> Int -> ByteString -> IO ByteString
-    handleChunkData ref n bs = do
+    handleChunkData :: IORef State -> Int -> IO ByteString
+    handleChunkData ref n = do
+      bs <- readInput conn
       let (xs, ys) = B.splitAt n bs
       unreadInput conn ys
       writeIORef ref (More (n - B.length xs) Data)
