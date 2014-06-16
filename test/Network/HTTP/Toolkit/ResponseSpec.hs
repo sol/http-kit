@@ -26,7 +26,7 @@ spec = do
           , "5\r\nhello\r\n"
           , "0\r\n\r\n"
           ]
-        (responseBody <$> readResponse "GET" c >>= consumeBody) `shouldReturn` "5\r\nhello\r\n0\r\n\r\n"
+        (responseBody <$> readResponse True "GET" c >>= consumeBody) `shouldReturn` "5\r\nhello\r\n0\r\n\r\n"
 
       context "when input ends early" $ do
         it "terminates body (according to RFC 2616, Section 4.4, (2))" $ do
@@ -37,12 +37,12 @@ spec = do
             , "5\r\nhel"
             , ""
             ]
-          (responseBody <$> readResponse "GET" c >>= consumeBody) `shouldReturn` "5\r\nhel"
+          (responseBody <$> readResponse True "GET" c >>= consumeBody) `shouldReturn` "5\r\nhel"
 
     context "when input ends early" $ do
       it "throws UnexpectedEndOfInput" $ do
         c <- mkInputStream ("HTTP/1.1 200 OK\r\n" : "Transfer-Encoding: chunked" : repeat "")
-        (responseBody <$> readResponse "GET" c >>= consumeBody) `shouldThrow` (== UnexpectedEndOfInput)
+        (responseBody <$> readResponse True "GET" c >>= consumeBody) `shouldThrow` (== UnexpectedEndOfInput)
 
   describe "determineResponseBodyType" $ do
     let arbitraryHeaders :: Gen [Header]

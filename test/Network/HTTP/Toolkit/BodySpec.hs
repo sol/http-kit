@@ -4,6 +4,7 @@ module Network.HTTP.Toolkit.BodySpec (main, spec) where
 import           Helper
 import           System.Timeout
 
+import           Data.Foldable (forM_)
 import           Data.Char
 import           Data.List
 import           Data.ByteString (ByteString)
@@ -16,6 +17,24 @@ import           Network.HTTP.Toolkit.Body
 
 main :: IO ()
 main = hspec spec
+
+formatChunkedBody :: Bool -> ChunkedBody -> ByteString
+formatChunkedBody raw (ChunkedBody chunks trailer)
+  | not raw = mconcat [bs | Chunk _ bs <- chunks]
+  | otherwise = mconcat (map formatChunk chunks ++ ["0\r\n", formatTrailer trailer, "\r\n"])
+  where
+    formatChunk :: Chunk -> ByteString
+    formatChunk (Chunk e c) = mconcat [B.pack $ showHex (B.length c) "", formatExtension e, "\r\n", c, "\r\n"]
+
+    formatExtension :: ByteString -> ByteString
+    formatExtension e
+      | B.null e = ""
+      | otherwise = ";" `mappend` e
+
+    formatTrailer :: [ByteString] -> ByteString
+    formatTrailer xs
+      | null xs = ""
+      | otherwise = mconcat (map (`mappend` "\r\n") xs)
 
 data ChunkedBody = ChunkedBody [Chunk] Trailer
   deriving Show
@@ -37,22 +56,6 @@ instance Arbitrary Chunk where
       body = arbitrary `suchThat` (not . B.null)
       extensions = B.pack <$> listOf (elements allowed)
       allowed = [chr 32 .. chr 126] \\ "\r\n"
-
-formatChunkedBody :: ChunkedBody -> ByteString
-formatChunkedBody (ChunkedBody chunks trailer) = mconcat (map formatChunk chunks ++ ["0\r\n", formatTrailer trailer, "\r\n"])
-  where
-    formatChunk :: Chunk -> ByteString
-    formatChunk (Chunk e c) = mconcat [B.pack $ showHex (B.length c) "", formatExtension e, "\r\n", c, "\r\n"]
-
-    formatExtension :: ByteString -> ByteString
-    formatExtension e
-      | B.null e = ""
-      | otherwise = ";" `mappend` e
-
-    formatTrailer :: [ByteString] -> ByteString
-    formatTrailer xs
-      | null xs = ""
-      | otherwise = mconcat (map (`mappend` "\r\n") xs)
 
 spec :: Spec
 spec = do
@@ -117,60 +120,71 @@ spec = do
         timeout 100000 (readChunkSize c) `shouldThrow` (== ChunkTooLarge)
 
   describe "makeChunkedReader" $ do
-    it "reads chunked body" $ do
-      c <- mkInputStream ["5\r\nhello\r\n0\r\n\r\n"]
-      bodyReader <- makeChunkedReader c
-      consumeBody bodyReader `shouldReturn` "5\r\nhello\r\n0\r\n\r\n"
+    forM_ [True, False] $ \raw -> do
+      describe ("when raw is " ++ show raw) $ do
+        it "reads chunked body" $ do
+          c <- mkInputStream ["5\r\nhello\r\n0\r\n\r\n"]
+          bodyReader <- makeChunkedReader raw c
+          if raw then
+            consumeBody bodyReader `shouldReturn` "5\r\nhello\r\n0\r\n\r\n"
+          else
+            consumeBody bodyReader `shouldReturn` "hello"
 
-    it "reads *arbitrary* chunked bodies" $ do
-      property $ \body n -> do
-        let bs = formatChunkedBody body
-        bodyReader <- mkInputStream (slice n bs) >>= makeChunkedReader
-        consumeBody bodyReader `shouldReturn` bs
+        it "reads *arbitrary* chunked bodies" $ do
+          property $ \body n -> do
+            let bs = formatChunkedBody True body
+            bodyReader <- mkInputStream (slice n bs) >>= makeChunkedReader raw
+            consumeBody bodyReader `shouldReturn` formatChunkedBody raw body
 
-    context "when there is excess input" $ do
-      it "unreads excess input" $ do
-        c <- mkInputStream ["5\r\nhello\r\n0\r\n\r\nfoo"]
-        bodyReader <- makeChunkedReader c
-        _ <- consumeBody bodyReader
-        readInput c `shouldReturn` "foo"
+        context "when there is excess input" $ do
+          it "unreads excess input" $ do
+            c <- mkInputStream ["5\r\nhello\r\n0\r\n\r\nfoo"]
+            bodyReader <- makeChunkedReader raw c
+            _ <- consumeBody bodyReader
+            readInput c `shouldReturn` "foo"
 
-      it "unreads *any* excess input" $ do
-        property $ \body n remaining -> (not . B.null) remaining ==> do
-          let bs = formatChunkedBody body
-          c <- mkInputStream (slice n $ bs `B.append` remaining)
-          bodyReader <- makeChunkedReader c
-          _ <- consumeBody bodyReader
-          readAtLeast c (B.length remaining) `shouldReturn` remaining
+          it "unreads *any* excess input" $ do
+            property $ \body n remaining -> (not . B.null) remaining ==> do
+              let bs = formatChunkedBody True body
+              c <- mkInputStream (slice n $ bs `B.append` remaining)
+              bodyReader <- makeChunkedReader raw c
+              _ <- consumeBody bodyReader
+              readAtLeast c (B.length remaining) `shouldReturn` remaining
 
-    context "when chunk size is too large" $ do
-      it "throws ChunkTooLarge" $ do
-        let xs = [B.pack $ showHex (succ maxChunkSize) "", "\r\nfoo\r\n0\r\n\r\n"]
-        bodyReader <- mkInputStream xs >>= makeChunkedReader
-        consumeBody bodyReader `shouldThrow` (== ChunkTooLarge)
+        context "when chunk size is too large" $ do
+          it "throws ChunkTooLarge" $ do
+            let xs = [B.pack $ showHex (succ maxChunkSize) "", "\r\nfoo\r\n0\r\n\r\n"]
+            bodyReader <- mkInputStream xs >>= makeChunkedReader raw
+            consumeBody bodyReader `shouldThrow` (== ChunkTooLarge)
 
-    context "when chunk size is missing" $ do
-      it "throws InvalidChunk" $ do
-        let xs = ["xxx"]
-        bodyReader <- mkInputStream xs >>= makeChunkedReader
-        consumeBody bodyReader `shouldThrow` (== InvalidChunk)
+        context "when chunk size is missing" $ do
+          it "throws InvalidChunk" $ do
+            let xs = ["xxx"]
+            bodyReader <- mkInputStream xs >>= makeChunkedReader raw
+            consumeBody bodyReader `shouldThrow` (== InvalidChunk)
 
-    context "with chunk extensions" $ do
-      it "reads chunked body" $ do
-        c <- mkInputStream ["5;foo=bar\r\nhello\r\n0\r\n\r\n"]
-        bodyReader <- makeChunkedReader c
-        consumeBody bodyReader `shouldReturn` "5;foo=bar\r\nhello\r\n0\r\n\r\n"
+        context "with chunk extensions" $ do
+          it "reads chunked body" $ do
+            c <- mkInputStream ["5;foo=bar\r\nhello\r\n0\r\n\r\n"]
+            bodyReader <- makeChunkedReader raw c
+            if raw then
+              consumeBody bodyReader `shouldReturn` "5;foo=bar\r\nhello\r\n0\r\n\r\n"
+            else
+              consumeBody bodyReader `shouldReturn` "hello"
 
-    context "with trailer" $ do
-      it "reads chunked body" $ do
-        c <- mkInputStream ["5;foo=bar\r\nhello\r\n0\r\nfoo: 23\r\nbar: 42\r\n\r\n"]
-        bodyReader <- makeChunkedReader c
-        consumeBody bodyReader `shouldReturn` "5;foo=bar\r\nhello\r\n0\r\nfoo: 23\r\nbar: 42\r\n\r\n"
+        context "with trailer" $ do
+          it "reads chunked body" $ do
+            c <- mkInputStream ["5;foo=bar\r\nhello\r\n0\r\nfoo: 23\r\nbar: 42\r\n\r\n"]
+            bodyReader <- makeChunkedReader raw c
+            if raw then
+              consumeBody bodyReader `shouldReturn` "5;foo=bar\r\nhello\r\n0\r\nfoo: 23\r\nbar: 42\r\n\r\n"
+            else
+              consumeBody bodyReader `shouldReturn` "hello"
 
-    context "when body has been fully consumed" $ do
-      it "returns empty string" $ do
-        property $ \body n -> do
-          let bs = formatChunkedBody body
-          bodyReader <- mkInputStream (slice n bs) >>= makeChunkedReader
-          _ <- consumeBody bodyReader
-          bodyReader `shouldReturn` ""
+        context "when body has been fully consumed" $ do
+          it "returns empty string" $ do
+            property $ \body n -> do
+              let bs = formatChunkedBody True body
+              bodyReader <- mkInputStream (slice n bs) >>= makeChunkedReader raw
+              _ <- consumeBody bodyReader
+              bodyReader `shouldReturn` ""

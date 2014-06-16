@@ -36,10 +36,12 @@ data Request a = Request {
 } deriving (Eq, Show, Functor, Foldable, Traversable)
 
 -- | Same as `readRequestWithLimit` with a `Limit` of `defaultHeaderSizeLimit`.
-readRequest :: InputStream -> IO (Request BodyReader)
+readRequest :: Bool -> InputStream -> IO (Request BodyReader)
 readRequest = readRequestWithLimit defaultHeaderSizeLimit
 
 -- | Read request from provided `InputStream`.
+--
+-- The second argument is passed to `makeChunkedReader`.
 --
 -- Throws:
 --
@@ -48,11 +50,11 @@ readRequest = readRequestWithLimit defaultHeaderSizeLimit
 -- * `HeaderTooLarge` if request-line and headers together exceed the specified size `Limit`
 --
 -- * `InvalidHeader` if request-line is missing or a header is malformed
-readRequestWithLimit :: Limit -> InputStream -> IO (Request BodyReader)
-readRequestWithLimit limit c = do
+readRequestWithLimit :: Limit -> Bool -> InputStream -> IO (Request BodyReader)
+readRequestWithLimit limit raw c = do
   (startLine, headers) <- readMessageHeader limit c
   (method, path) <- parseRequestLine_ startLine
-  Request method path headers <$> makeBodyReader c (determineRequestBodyType headers)
+  Request method path headers <$> makeBodyReader raw (determineRequestBodyType headers) c
 
 parseRequestLine_ :: ByteString -> IO (Method, RequestPath)
 parseRequestLine_ input = maybe (throwIO $ InvalidRequestLine input) return (parseRequestLine input)

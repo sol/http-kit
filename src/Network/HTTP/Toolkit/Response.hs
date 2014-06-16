@@ -36,10 +36,12 @@ data Response a = Response {
 
 -- | Same as `readResponseWithLimit` with a `Limit` of
 -- `defaultHeaderSizeLimit`.
-readResponse :: Method -> InputStream -> IO (Response BodyReader)
+readResponse :: Bool -> Method -> InputStream -> IO (Response BodyReader)
 readResponse = readResponseWithLimit defaultHeaderSizeLimit
 
 -- | Read response from provided `InputStream`.
+--
+-- The second argument is passed to `makeChunkedReader`.
 --
 -- The corresponding request `Method` has to be specified so that the body length can be determined (see
 -- <http://tools.ietf.org/html/rfc2616#section-4.4 RFC 2616, Section 4.4>).
@@ -51,11 +53,11 @@ readResponse = readResponseWithLimit defaultHeaderSizeLimit
 -- * `HeaderTooLarge` if status-line and headers together exceed the specified size `Limit`
 --
 -- * `InvalidHeader` if status-line is missing or a header is malformed
-readResponseWithLimit :: Limit -> Method -> InputStream -> IO (Response BodyReader)
-readResponseWithLimit limit method c = do
+readResponseWithLimit :: Limit -> Bool -> Method -> InputStream -> IO (Response BodyReader)
+readResponseWithLimit limit raw method c = do
   (startLine, headers) <- readMessageHeader limit c
   status <- parseStatusLine_ startLine
-  Response status headers <$> makeBodyReader c (determineResponseBodyType method status headers)
+  Response status headers <$> makeBodyReader raw (determineResponseBodyType method status headers) c
 
 parseStatusLine_ :: ByteString -> IO Status
 parseStatusLine_ input = maybe (throwIO $ InvalidStatusLine input) return (parseStatusLine input)

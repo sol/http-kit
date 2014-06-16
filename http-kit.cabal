@@ -22,7 +22,7 @@ author:           Simon Hengel <sol@typeful.net>
 maintainer:       Simon Hengel <sol@typeful.net>
 build-type:       Simple
 category:         Network
-cabal-version:    >= 1.8
+cabal-version:    >= 1.10
 
 source-repository head
   type: git
@@ -49,6 +49,7 @@ library
     , bytestring
     , http-types
     , case-insensitive
+  default-language: Haskell2010
 
 test-suite spec
   type:
@@ -67,3 +68,4 @@ test-suite spec
     , hspec >= 1.9
     , QuickCheck
     , quickcheck-instances
+  default-language: Haskell2010

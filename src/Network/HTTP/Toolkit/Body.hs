@@ -63,9 +63,11 @@ bodyTypeFromHeaders headers = chunked <|> length_
     length_ = Length <$> (lookup "Content-Length" headers >>= readMaybe . B8.unpack)
 
 -- | Create a `BodyReader` from provided `InputStream` and specified `BodyType`.
-makeBodyReader :: InputStream -> BodyType -> IO BodyReader
-makeBodyReader c bodyType = case bodyType of
-  Chunked -> makeChunkedReader c
+--
+-- The first argument is passed to `makeChunkedReader`.
+makeBodyReader :: Bool -> BodyType -> InputStream -> IO BodyReader
+makeBodyReader raw bodyType c = case bodyType of
+  Chunked -> makeChunkedReader raw c
   Length n -> makeLengthReader n c
   Unlimited -> makeUnlimitedReader c
   None -> return (pure "")
@@ -147,18 +149,24 @@ makeLengthReader total c = do
 
 data Where = Data | Extension
 
-data State = More Int Where | Trailer | Done
+data State = Begin | More Int Where | Trailer | Done
 
 -- | Create a reader for bodies with chunked transfer coding.
+--
+-- If the first argument is `True` the body is returned raw, including chunk
+-- sizes, chunk extensions and trailer.
+--
+-- If the first argument is `False` only the decoded body is returned, chunk
+-- extensions and trailer are striped.
 --
 -- The reader throws:
 --
 -- * `InvalidChunk` if the body is malformed.
 --
 -- * `ChunkTooLarge` if the size of a chunk exceeds `maxChunkSize`.
-makeChunkedReader :: InputStream -> IO BodyReader
-makeChunkedReader conn = do
-  ref <- newIORef (More 0 Data)
+makeChunkedReader :: Bool -> InputStream -> IO BodyReader
+makeChunkedReader raw conn = do
+  ref <- newIORef Begin
   return $ go ref `catchOnly` UnexpectedEndOfInput $ do
     writeIORef ref Done
     return ""
@@ -166,25 +174,35 @@ makeChunkedReader conn = do
     go ref = do
       c <- readIORef ref
       case c of
-        More 0 Data -> do
+        Begin -> do
           (n, xs) <- readChunkSize conn
           writeIORef ref (More n Extension)
-          return xs
+          if raw then return xs else go ref
         More n Extension -> do
           bs <- readInput conn
           case breakOnNewline bs of
             ("", _) ->
               if n > 0
                 then do
-                  unreadInput conn bs
-                  handleChunkData ref (n + 3)
+                  if raw then do
+                    unreadInput conn bs
+                    handleChunkData ref (n + 1)
+                  else do
+                    unreadInput conn (B.tail bs)
+                    handleChunkData ref n
                 else do
                   writeIORef ref Trailer
                   unreadInput conn bs
                   readTrailer ref
             (xs, ys) -> do
               unreadInput conn ys
-              return xs
+              if raw then return xs else go ref
+        More 0 Data -> do
+          bs <- readAtLeast conn 2
+          let (xs, ys) = B.splitAt 2 bs
+          unreadInput conn ys
+          writeIORef ref Begin
+          if raw then return xs else go ref
         More n Data -> do
           handleChunkData ref n
         Trailer -> readTrailer ref
@@ -206,13 +224,13 @@ makeChunkedReader conn = do
           writeIORef ref Done
           let (ys, zs) = B.splitAt 3 xs
           unreadInput conn zs
-          return ys
+          if raw then return ys else return ""
         else do
           let Just (y, ys) = B.uncons xs
           case breakOnNewline ys of
             (zs, rest) -> do
               unreadInput conn rest
-              return (y `B.cons` zs)
+              if raw then return (y `B.cons` zs) else go ref
 
 breakOnNewline :: ByteString -> (ByteString, ByteString)
 breakOnNewline = breakByte 10
