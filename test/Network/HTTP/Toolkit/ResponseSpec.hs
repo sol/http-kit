@@ -88,3 +88,7 @@ spec = do
 
     it "returns Nothing on parse error" $ do
       parseStatusLine "foo" `shouldBe` Nothing
+
+    context "when status message is missing" $ do
+      it "returns status with an empty message" $ do
+        parseStatusLine "HTTP/1.1 200" `shouldBe` Just (mkStatus 200 "")

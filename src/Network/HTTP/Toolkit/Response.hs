@@ -65,7 +65,7 @@ parseStatusLine_ input = maybe (throwIO $ InvalidStatusLine input) return (parse
 -- | Parse status-line (see <http://tools.ietf.org/html/rfc2616#section-6.1 RFC 2616, Section 6.1>).
 parseStatusLine :: ByteString -> Maybe Status
 parseStatusLine input = case B.words input of
-  _ : status : message : _ -> mkStatus <$> (readMaybe $ B.unpack status) <*> Just message
+  _ : status : xs -> mkStatus <$> (readMaybe $ B.unpack status) <*> (listToMaybe xs <|> Just "")
   _ -> Nothing
 
 -- | Determine the message `BodyType` from a given `Method`, `Status`, and list
