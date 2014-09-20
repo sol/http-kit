@@ -4,6 +4,8 @@ module Network.HTTP.Toolkit.Response (
 , readResponse
 , readResponseWithLimit
 , parseStatusLine
+, parseHttpVersion
+, parseStatus
 
 , simpleResponse
 , sendResponse
@@ -15,12 +17,14 @@ module Network.HTTP.Toolkit.Response (
 import           Control.Applicative
 import           Control.Monad (guard)
 import           Control.Exception
-import           Text.Read (readMaybe)
+import qualified Text.Read as T
 import           Data.Maybe
 import           Data.Foldable
 import           Data.Traversable
+import           Data.Char
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B
+import qualified Data.CaseInsensitive as CI
 import           Network.HTTP.Types
 
 import           Network.HTTP.Toolkit.Error
@@ -29,7 +33,8 @@ import           Network.HTTP.Toolkit.Header
 import           Network.HTTP.Toolkit.Body
 
 data Response a = Response {
-  responseStatus :: Status
+  responseVersion :: HttpVersion
+, responseStatus :: Status
 , responseHeaders :: [Header]
 , responseBody :: a
 } deriving (Eq, Show, Functor, Foldable, Traversable)
@@ -56,17 +61,32 @@ readResponse = readResponseWithLimit defaultHeaderSizeLimit
 readResponseWithLimit :: Limit -> Bool -> Method -> InputStream -> IO (Response BodyReader)
 readResponseWithLimit limit raw method c = do
   (startLine, headers) <- readMessageHeader limit c
-  status <- parseStatusLine_ startLine
-  Response status headers <$> makeBodyReader raw (determineResponseBodyType method status headers) c
+  (version, status) <- parseStatusLine_ startLine
+  Response version status headers <$> makeBodyReader raw (determineResponseBodyType method status headers) c
 
-parseStatusLine_ :: ByteString -> IO Status
+parseStatusLine_ :: ByteString -> IO (HttpVersion, Status)
 parseStatusLine_ input = maybe (throwIO $ InvalidStatusLine input) return (parseStatusLine input)
 
 -- | Parse status-line (see <http://tools.ietf.org/html/rfc2616#section-6.1 RFC 2616, Section 6.1>).
-parseStatusLine :: ByteString -> Maybe Status
-parseStatusLine input = case B.words input of
-  _ : status : xs -> mkStatus <$> (readMaybe $ B.unpack status) <*> (listToMaybe xs <|> Just "")
+parseStatusLine :: ByteString -> Maybe (HttpVersion, Status)
+parseStatusLine input = case breakOnSpace input of
+  (version, status) -> (,) <$> parseHttpVersion version <*> (uncurry mkStatus <$> parseStatus status)
+
+parseStatus :: ByteString -> Maybe (Int, ByteString)
+parseStatus input = case breakOnSpace input of
+  (code, message) -> (,) <$> readMaybe code <*> pure message
+
+breakOnSpace :: ByteString -> (ByteString, ByteString)
+breakOnSpace input = B.dropWhile isSpace <$> B.break isSpace input
+
+-- | Parse HTTP version (see <http://tools.ietf.org/html/rfc2616#section-6.1.1 RFC 2616, Section 6.1.1>).
+parseHttpVersion :: ByteString -> Maybe HttpVersion
+parseHttpVersion input = case B.split '.' <$> B.splitAt 5 input of
+  (x, [major, minor]) | CI.mk x == "http/" -> HttpVersion <$> readMaybe major <*> readMaybe minor
   _ -> Nothing
+
+readMaybe :: Read a => ByteString -> Maybe a
+readMaybe = T.readMaybe . B.unpack
 
 -- | Determine the message `BodyType` from a given `Method`, `Status`, and list
 -- of message headers (as of
@@ -83,10 +103,10 @@ determineResponseBodyType method status headers = fromMaybe Unlimited $ none <|>
       || code == 304
 
 -- | Format status-line.
-formatStatusLine :: Status -> ByteString
-formatStatusLine status = B.concat ["HTTP/1.1 ", B.pack $ show (statusCode status), " ", statusMessage status]
+formatStatusLine :: HttpVersion -> Status -> ByteString
+formatStatusLine version status = B.concat [B.pack $ show version," ", B.pack $ show (statusCode status), " ", statusMessage status]
 
--- | Send a simple HTTP response.  The provided `ByteString` is used as the
+-- | Send a simple HTTP/1.1 response.  The provided `ByteString` is used as the
 -- message body.  A suitable @Content-Length@ header is added to the specified
 -- list of headers.
 --
@@ -94,7 +114,7 @@ formatStatusLine status = B.concat ["HTTP/1.1 ", B.pack $ show (statusCode statu
 -- space efficiency it may be called multiple times.
 simpleResponse :: (ByteString -> IO ()) -> Status -> [Header] -> ByteString -> IO ()
 simpleResponse send status headers_ body = do
-  fromByteString body >>= sendResponse send . Response status headers
+  fromByteString body >>= sendResponse send . Response http11 status headers
   where
     headers = ("Content-Length", B.pack . show . B.length $ body) : headers_
 
@@ -103,6 +123,6 @@ simpleResponse send status headers_ body = do
 -- /Note:/ The first argument to this function is used to send the data.  For
 -- space efficiency it may be called multiple times.
 sendResponse :: (ByteString -> IO ()) -> (Response BodyReader) -> IO ()
-sendResponse send (Response status headers body) = do
-  sendHeader send (formatStatusLine status) headers
+sendResponse send (Response version status headers body) = do
+  sendHeader send (formatStatusLine version status) headers
   sendBody send body
