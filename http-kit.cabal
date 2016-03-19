@@ -26,7 +26,7 @@ cabal-version:    >= 1.10
 
 source-repository head
   type: git
-  location: https://github.com/zalora/http-kit
+  location: https://github.com/sol/http-kit
 
 library
   ghc-options:
