@@ -81,14 +81,29 @@ spec = do
 
   describe "parseStatusLine" $ do
     it "parses HTTP status line" $ do
-      parseStatusLine "HTTP/1.1 200 OK" `shouldBe` Just (mkStatus 200 "OK")
+      parseStatusLine "HTTP/1.0 200 OK" `shouldBe` Just (http10, status200)
+
+    it "ignores additional whitespace between HTTP version and status" $ do
+      parseStatusLine "HTTP/1.1    404 Not Found" `shouldBe` Just (http11, status404)
+
+  describe "parseStatus" $ do
+    it "parses HTTP status" $ do
+      parseStatus "404 Not Found" `shouldBe` Just (404, "Not Found")
+
+    it "returns Nothing on empty input" $ do
+      parseStatus "" `shouldBe` Nothing
 
     it "returns Nothing on invalid status code" $ do
-      parseStatusLine "HTTP/1.1 foo OK" `shouldBe` Nothing
-
-    it "returns Nothing on parse error" $ do
-      parseStatusLine "foo" `shouldBe` Nothing
+      parseStatus "foo OK" `shouldBe` Nothing
 
     context "when status message is missing" $ do
       it "returns status with an empty message" $ do
-        parseStatusLine "HTTP/1.1 200" `shouldBe` Just (mkStatus 200 "")
+        parseStatus "200" `shouldBe` Just (200, "")
+
+  describe "parseHttpVersion" $ do
+    it "parses HTTP version" $ do
+      parseHttpVersion "HTTP/1.1" `shouldBe` Just http11
+
+  describe "formatStatusLine" $ do
+    it "formats status line" $ do
+      formatStatusLine http11 status200 `shouldBe` "HTTP/1.1 200 OK"
